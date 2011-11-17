@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>org.mule.tools.modules</groupId>
+    <artifactId>dynamic-module</artifactId>
+    <version>0.9.0-SNAPSHOT</version>
+
+    <properties>
+        <muleVersion>3.2.0</muleVersion>
+        <muleDevKitVersion>3.0.2</muleDevKitVersion>
+        <aetherVersion>1.13</aetherVersion>
+        <mavenVersion>3.0.3</mavenVersion>
+        <wagonVersion>1.0-beta-7</wagonVersion>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+    <developers>
+        <developer>
+            <name>Julien ELUARD</name>
+            <email>julien.eluard@mulesoft.com</email>
+            <timezone>+1</timezone>
+            <roles>
+                <role>developer</role>
+            </roles>
+        </developer>
+    </developers>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.mule</groupId>
+            <artifactId>mule-core</artifactId>
+            <version>${muleVersion}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.mule.tools.devkit</groupId>
+            <artifactId>mule-devkit-annotations</artifactId>
+            <version>${muleDevKitVersion}</version>
+        </dependency>
+        <!-- Aether dependencies -->
+        <dependency>
+          <groupId>org.sonatype.aether</groupId>
+          <artifactId>aether-api</artifactId>
+          <version>${aetherVersion}</version>
+        </dependency>
+        <dependency>
+          <groupId>org.sonatype.aether</groupId>
+          <artifactId>aether-util</artifactId>
+          <version>${aetherVersion}</version>
+        </dependency>
+        <dependency>
+          <groupId>org.sonatype.aether</groupId>
+          <artifactId>aether-impl</artifactId>
+          <version>${aetherVersion}</version>
+        </dependency>
+        <dependency>
+          <groupId>org.sonatype.aether</groupId>
+          <artifactId>aether-connector-file</artifactId>
+          <version>${aetherVersion}</version>
+        </dependency>
+        <dependency>
+          <groupId>org.sonatype.aether</groupId>
+          <artifactId>aether-connector-wagon</artifactId>
+          <version>${aetherVersion}</version>
+        </dependency>
+        <dependency>
+          <groupId>org.apache.maven</groupId>
+          <artifactId>maven-aether-provider</artifactId>
+          <version>${mavenVersion}</version>
+        </dependency>
+        <dependency>
+          <groupId>org.apache.maven.wagon</groupId>
+          <artifactId>wagon-provider-api</artifactId>
+          <version>${wagonVersion}</version>
+        </dependency>
+        <dependency>
+          <groupId>org.apache.maven.wagon</groupId>
+          <artifactId>wagon-file</artifactId>
+          <version>2.0</version>
+        </dependency>
+        <dependency>
+          <groupId>org.apache.maven.wagon</groupId>
+          <artifactId>wagon-ssh</artifactId>
+          <version>${wagonVersion}</version>
+        </dependency>
+        <dependency>
+          <groupId>org.apache.maven.wagon</groupId>
+          <artifactId>wagon-http-lightweight</artifactId>
+          <version>${wagonVersion}</version>
+          <exclusions>
+            <exclusion>
+              <groupId>org.apache.maven.wagon</groupId>
+              <artifactId>wagon-http-shared</artifactId>
+            </exclusion>
+          </exclusions>
+        </dependency>
+        <!-- Nexus dependencies -->
+        <dependency>
+            <groupId>org.sonatype.nexus</groupId>
+            <artifactId>nexus-rest-client-java</artifactId>
+            <version>1.9.2.3</version>
+        </dependency>
+        <!-- Test dependencies -->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.9</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>2.3.2</version>
+                <configuration>
+                    <source>1.6</source>
+                    <target>1.6</target>
+                </configuration>
+            </plugin>
+            <plugin>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>2.1.2</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>2.8</version>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-release-plugin</artifactId>
+                <version>2.1</version>
+                <configuration>
+                    <mavenExecutorId>forked-path</mavenExecutorId>
+                    <preparationGoals>clean install</preparationGoals>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+    <repositories>
+        <repository>
+            <id>muleforge-releases</id>
+            <name>MuleForge Releases Repository</name>
+            <url>http://repository.mulesoft.org/releases/</url>
+            <layout>default</layout>
+        </repository>
+        <repository>
+            <id>muleforge-snapshots</id>
+            <name>MuleForge Snapshots Repository</name>
+            <url>http://repository.mulesoft.org/snapshots/</url>
+            <layout>default</layout>
+        </repository>
+    </repositories>
+
+    <scm>
+        <connection>
+         scm:git:git://github.com/jeluard/dynamic-module.git
+        </connection>
+        <developerConnection>
+         scm:git:ssh://git@github.com/jeluard/dynamic-module.git
+        </developerConnection>
+        <url>
+         https://github.com/jeluard/dynamic-module
+        </url>
+    </scm>
+
+    <distributionManagement>
+        <repository>
+            <id>mulesoft.releases</id>
+            <name>MuleSoft Release Repository</name>
+            <url>https://repository.mulesoft.org/releases/</url>
+        </repository>
+        <snapshotRepository>
+            <id>mulesoft.snapshots</id>
+            <name>MuleSoft Snapshot Repository</name>
+            <url>https://repository.mulesoft.org/snapshots/</url>
+            <uniqueVersion>false</uniqueVersion>
+        </snapshotRepository>
+    </distributionManagement>
+
+</project>
