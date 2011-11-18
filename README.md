@@ -52,10 +52,15 @@ connector.setUsername("username");
 connector.setPassword("password");
 connector.setSecurityToken("securityToken");
 
-final Map<Module.Parameter, Object> parameters = new HashMap<Module.Parameter, Object>();
-parameters.put(connector.getParameter("url"), new URL("https://test.salesforce.com/services/Soap/u/23.0"));
+final Map<String, Object> parameters = new HashMap<String, Object>();
+parameters.put("url", new URL("https://test.salesforce.com/services/Soap/u/23.0"));
 
 final ModuleInvoker moduleInvoker = new ModuleInvoker(module, parameters);
-moduleInvoker.invoke("create", message);
+
+final Map<String, Object> methodParameterValues = new HashMap<String, Object>();
+methodParameterValues.put("type", "type");
+methodParameterValues.put("objects", new LinkedList<Map<String, Object>>());
+
+moduleInvoker.invoke("create", methodParameterValues);
 moduleInvoker.close();
 ```
