@@ -16,11 +16,12 @@ A MessageProcessor can be simply invoked using an Invoker.
 ```java
 final MessageProcessor messageProcessor = ...;
 final Object muleModule = ...;
-final Map<Module.Parameter, Object> parameterValues = ...;
+final Map<String, Object> parameterValues = ...;
+final Map<String, Object> methodParameterValues = ...;
         
 final Invoker invoker = new Invoker(messageProcessor, module, parameterValues, 5);
 invoker.initialise();
-final Object result = invoker.invoke(message);
+final Object result = invoker.invoke(methodParameterValues);
 invoker.close();
 ```
 
@@ -31,8 +32,8 @@ A ModuleInvoker will handle Invoker lifecycle for you.
 final Module module = new JarLoader().load(urls);
 //Setup this module if needed. For instance Connector will need credentials to be injected.
 
-final ModuleInvoker moduleInvoker = new ModuleInvoker(module, parameters);
-moduleInvoker.invoke("name", message);
+final ModuleInvoker moduleInvoker = new ModuleInvoker(module, parameterValues);
+moduleInvoker.invoke("name", methodParameterValues);
 moduleInvoker.close();
 ```
 
@@ -52,10 +53,15 @@ connector.setUsername("username");
 connector.setPassword("password");
 connector.setSecurityToken("securityToken");
 
-final Map<Module.Parameter, Object> parameters = new HashMap<Module.Parameter, Object>();
-parameters.put(connector.getParameter("url"), new URL("https://test.salesforce.com/services/Soap/u/23.0"));
+final Map<String, Object> parameterValues = new HashMap<String, Object>();
+parameterValues.put("url", new URL("https://test.salesforce.com/services/Soap/u/23.0"));
 
-final ModuleInvoker moduleInvoker = new ModuleInvoker(module, parameters);
-moduleInvoker.invoke("create", message);
+final ModuleInvoker moduleInvoker = new ModuleInvoker(module, parameterValues);
+
+final Map<String, Object> methodParameterValues = new HashMap<String, Object>();
+methodParameterValues.put("type", "type");
+methodParameterValues.put("objects", new LinkedList<Map<String, Object>>());
+
+moduleInvoker.invoke("create", methodParameterValues);
 moduleInvoker.close();
 ```
