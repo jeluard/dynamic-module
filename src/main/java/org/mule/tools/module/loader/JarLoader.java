@@ -34,6 +34,11 @@ public class JarLoader {
 
     private final Paranamer paranamer;
     private static final Paranamer DEFAULT_PARANAMER = new BytecodeReadingParanamer();
+    private static final String MODULE_CLASS_SUFFIX = "Module";
+    private static final String MESSAGE_PROCESSOR_CLASS_SUFFIX = "MessageProcessor";
+    private static final String CONNECTION_MANAGER_CLASS_SUFFIX = "ConnectionManager";
+    private static final String CAPABILITIES_ADAPTER_CLASS_SUFFIX = "CapabilitiesAdapter";
+    private static final String CONFIG_PACKAGE_PATH = "config.";
 
     public JarLoader() {
         this(JarLoader.DEFAULT_PARANAMER);
@@ -43,10 +48,36 @@ public class JarLoader {
         this.paranamer = paranamer;
     }
 
+    /**
+     * @param classLoader
+     * @param name
+     * @return loaded {@link Class} if any; null otherwise
+     */
+    protected final Class<?> loadClass(final ClassLoader classLoader, final String name) {
+        try {
+            return classLoader.loadClass(name);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * @param <T>
+     * @param clazz
+     * @return new {@link Class} instance; null if instantiation fails
+     */
+    protected final <T> T newInstance(final Class<?> clazz) {
+        try {
+            return (T) clazz.newInstance();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     protected final List<String> findPotentialModuleClassNames(final List<String> allFileNames) {
         final List<String> potentialModuleClassNames = new LinkedList<String>();
         for (final String fileName : allFileNames) {
-            if (fileName.endsWith("Module.class")) {
+            if (fileName.endsWith(JarLoader.MODULE_CLASS_SUFFIX+".class")) {
                 potentialModuleClassNames.add(fileName);
             }
         }
@@ -57,11 +88,9 @@ public class JarLoader {
         final List<String> potentialModuleClassNames = findPotentialModuleClassNames(allFileNames);
         for (final String potentialModuleClassName : potentialModuleClassNames) {
             final String className = extractClassName(potentialModuleClassName);
-            final Class<?> moduleClass;
-            try {
-                moduleClass = classLoader.loadClass(className);
-            } catch (ClassNotFoundException e) {
-                throw new IllegalArgumentException("Failed to load <"+className+">", e);
+            final Class<?> moduleClass = loadClass(classLoader, className);
+            if (moduleClass == null) {
+                throw new IllegalArgumentException("Failed to load <"+className+">");
             }
             if (moduleClass.getAnnotation(org.mule.api.annotations.Module.class) == null && moduleClass.getAnnotation(org.mule.api.annotations.Connector.class) == null) {
                 if (JarLoader.LOGGER.isLoggable(Level.WARNING)) {
@@ -77,30 +106,19 @@ public class JarLoader {
     }
 
     protected final Class<?> findCapabilitiesClass(final Class<?> moduleClass, final ClassLoader classLoader) {
-        final String capabilitiesClassName = moduleClass.getName().replace(moduleClass.getSimpleName(), "config."+moduleClass.getSimpleName()) +"CapabilitiesAdapter";
-        try {
-            return classLoader.loadClass(capabilitiesClassName);
-        } catch (Exception e) {
-            return null;
-        }
+        //TODO Make sure we get the most specific "Module" sub-class.
+        final String capabilitiesClassName = moduleClass.getName().replace(moduleClass.getSimpleName(), JarLoader.CONFIG_PACKAGE_PATH+moduleClass.getSimpleName())+JarLoader.CAPABILITIES_ADAPTER_CLASS_SUFFIX;
+        return loadClass(classLoader, capabilitiesClassName);
     }
 
     protected final Class<?> findConnectionManagerClass(final Class<?> moduleClass, final ClassLoader classLoader) {
-        final String capabilitiesClassName = moduleClass.getName().replace(moduleClass.getSimpleName(), "config."+moduleClass.getSimpleName()) +"ConnectionManager";
-        try {
-            return classLoader.loadClass(capabilitiesClassName);
-        } catch (Exception e) {
-            return null;
-        }
+        final String connectionManagerClassName = moduleClass.getName().replace(moduleClass.getSimpleName(), JarLoader.CONFIG_PACKAGE_PATH+moduleClass.getSimpleName())+JarLoader.CONNECTION_MANAGER_CLASS_SUFFIX;
+        return loadClass(classLoader, connectionManagerClassName);
     }
 
     protected final Class<?> findMessageProcessorClass(final Class<?> moduleClass, final String processorName, final ClassLoader classLoader) {
-        final String messageProcessorName = moduleClass.getPackage().getName()+".config."+StringUtils.capitalize(processorName)+"MessageProcessor";
-        try {
-            return classLoader.loadClass(messageProcessorName);
-        } catch (Exception e) {
-            return null;
-        }
+        final String messageProcessorName = moduleClass.getPackage().getName()+"."+JarLoader.CONFIG_PACKAGE_PATH+StringUtils.capitalize(processorName)+JarLoader.MESSAGE_PROCESSOR_CLASS_SUFFIX;
+        return loadClass(classLoader, messageProcessorName);
     }
 
     public Module load(final List<URL> urls) throws IOException {
@@ -111,11 +129,9 @@ public class JarLoader {
         if (moduleClass == null) {
             throw new IllegalArgumentException("Failed to find Module class in <"+moduleJar+">");
         }
-        final Object module;
-        try {
-            module = moduleClass.newInstance();
-        } catch (Exception e) {
-            throw new IllegalArgumentException("Failed to instantiate Module class <"+moduleClass.getCanonicalName()+">", e);
+        final Object module = newInstance(moduleClass);
+        if (module == null) {
+            throw new IllegalArgumentException("Failed to instantiate Module class <"+moduleClass.getCanonicalName()+">");
         }
         final org.mule.api.annotations.Module moduleAnnotation = moduleClass.getAnnotation(org.mule.api.annotations.Module.class);
         if (moduleAnnotation != null) {
@@ -135,11 +151,9 @@ public class JarLoader {
         if (capabilitiesClass == null) {
             throw new IllegalArgumentException("Failed to find Capabilities class for <"+moduleClass+">");
         }
-        final Capabilities capabilities;
-        try {
-            capabilities = (Capabilities) capabilitiesClass.newInstance();
-        } catch (Exception e) {
-            throw new IllegalArgumentException("Failed to instantiate Capabilities class <"+capabilitiesClass.getCanonicalName()+">", e);
+        final Capabilities capabilities = newInstance(capabilitiesClass);
+        if (capabilities == null) {
+            throw new IllegalArgumentException("Failed to instantiate Capabilities class <"+capabilitiesClass.getCanonicalName()+">");
         }
         return new Module(annotation.name(), module, capabilities, listParameters(moduleClass), listProcessors(moduleClass, classLoader), classLoader);
     }
@@ -149,22 +163,18 @@ public class JarLoader {
         if (capabilitiesClass == null) {
             throw new IllegalArgumentException("Failed to find Capabilities class for <"+moduleClass+">");
         }
-        final Capabilities capabilities;
-        try {
-            capabilities = (Capabilities) capabilitiesClass.newInstance();
-        } catch (Exception e) {
-            throw new IllegalArgumentException("Failed to instantiate Capabilities class <"+capabilitiesClass.getCanonicalName()+">", e);
+        final Capabilities capabilities = newInstance(capabilitiesClass);
+        if (capabilities == null) {
+            throw new IllegalArgumentException("Failed to instantiate Capabilities class <"+capabilitiesClass.getCanonicalName()+">");
         }
         if (capabilities.isCapableOf(Capability.CONNECTION_MANAGEMENT_CAPABLE)) {
             final Class<?> connectionManagerClass = findConnectionManagerClass(moduleClass, classLoader);
             if (connectionManagerClass == null) {
                 throw new IllegalArgumentException("Failed to find ConnectionManager class for connector <"+moduleClass+">");
             }
-            final ConnectionManager<?, ?> connectionManager;
-            try {
-                connectionManager = (ConnectionManager<?, ?>) connectionManagerClass.newInstance();
-            } catch (Exception e) {
-                throw new IllegalArgumentException("Failed to instantiate ConnectionManager class <"+connectionManagerClass.getCanonicalName()+">", e);
+            final ConnectionManager<?, ?> connectionManager = newInstance(connectionManagerClass);
+            if (connectionManager == null) {
+                throw new IllegalArgumentException("Failed to instantiate ConnectionManager class <"+connectionManagerClass.getCanonicalName()+">");
             }
             return new Connector(annotation.name(), module, capabilities, listParameters(moduleClass), listProcessors(moduleClass, classLoader), connectionManager, classLoader);
         }
@@ -239,11 +249,9 @@ public class JarLoader {
                 if (messageProcessorClass == null) {
                     throw new IllegalArgumentException("Failed to find MessageProcessor class for processor <"+method.getName()+">");
                 }
-                final MessageProcessor messageProcessor;
-                try {
-                    messageProcessor = (MessageProcessor) messageProcessorClass.newInstance();
-                } catch (Exception e) {
-                    throw new IllegalArgumentException("Failed to instantiate MessageProcessor class <"+messageProcessorClass.getCanonicalName()+">", e);
+                final MessageProcessor messageProcessor = newInstance(messageProcessorClass);
+                if (messageProcessor == null) {
+                    throw new IllegalArgumentException("Failed to instantiate MessageProcessor class <"+messageProcessorClass.getCanonicalName()+">");
                 }
                 processors.add(new Connector.Processor(extractProcessorname(annotation, method), messageProcessor, listProcessorParameters(moduleClass, method), annotation.intercepting()));
             }
