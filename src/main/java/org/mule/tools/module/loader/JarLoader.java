@@ -2,6 +2,7 @@ package org.mule.tools.module.loader;
 
 import com.thoughtworks.paranamer.BytecodeReadingParanamer;
 import com.thoughtworks.paranamer.Paranamer;
+
 import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
@@ -31,7 +32,16 @@ public class JarLoader {
 
     private static final Logger LOGGER = Logger.getLogger(JarLoader.class.getPackage().getName());
 
-    private static final Paranamer PARANAMER = new BytecodeReadingParanamer();
+    private final Paranamer paranamer;
+    private static final Paranamer DEFAULT_PARANAMER = new BytecodeReadingParanamer();
+
+    public JarLoader() {
+        this(JarLoader.DEFAULT_PARANAMER);
+    }
+
+    public JarLoader(final Paranamer paranamer) {
+        this.paranamer = paranamer;
+    }
 
     protected final List<String> findPotentialModuleClassNames(final List<String> allFileNames) {
         final List<String> potentialModuleClassNames = new LinkedList<String>();
@@ -182,11 +192,17 @@ public class JarLoader {
     }
 
     protected final String[] extractMethodParameterNames(final Method method) {
-        final String[] parameterNames = JarLoader.PARANAMER.lookupParameterNames(method, false);
+        final String[] parameterNames = this.paranamer.lookupParameterNames(method, false);
         if (parameterNames != null) {
             return parameterNames;
         }
-        return JarLoader.PARANAMER.lookupParameterNames(method, false);
+
+        //Fall back to type inferred names
+        final List<String> inferredParameterNames = new LinkedList<String>();
+        for (final Class<?> type : method.getParameterTypes()) {
+            inferredParameterNames.add(type.getSimpleName());
+        }
+        return inferredParameterNames.toArray(new String[inferredParameterNames.size()]);
     }
 
     protected final List<Connector.Parameter> listProcessorParameters(final Class<?> moduleClass, final Method method) {
