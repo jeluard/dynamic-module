@@ -1,7 +1,9 @@
 package org.mule.tools.module.discovery;
 
+import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -31,20 +33,27 @@ import org.sonatype.aether.util.graph.PreorderNodeListGenerator;
  */
 public final class MuleForgeDiscovery {
 
+    private final File localRepository;
+    private static final File DEFAULT_LOCAL_REPOSITORY = new File(System.getProperty("user.home")+"/.m2/repository");
+    private final List<RemoteRepository> repositories;
     private static final String DEFAULT_GROUP_ID = "org.mule.modules";
     private static final String DEFAULT_EXTENSION = "jar";
     private static final String DEFAULT_SCOPE = "compile";
-    private final List<RemoteRepository> repositories;
 
     public MuleForgeDiscovery() {
-        this(MuleForgeDiscovery.defaultRepositories());
+        this(MuleForgeDiscovery.DEFAULT_LOCAL_REPOSITORY);
     }
 
-    public MuleForgeDiscovery(final List<RemoteRepository> repositories) {
+    public MuleForgeDiscovery(final File localRepository) {
+        this(localRepository, Collections.<RemoteRepository>emptyList());
+    }
+
+    public MuleForgeDiscovery(final File localRepository, final List<RemoteRepository> repositories) {
+        this.localRepository = localRepository;
         this.repositories = repositories;
     }
 
-    public static List<RemoteRepository> defaultRepositories() {
+    public static List<RemoteRepository> defaultMuleForgeRepositories() {
         final List<RemoteRepository> repositories = new LinkedList<RemoteRepository>();
         repositories.add(new RemoteRepository("central", "default", "http://repo1.maven.org/maven2/"));
         repositories.add(new RemoteRepository("muleforge", "default", "http://repository.mulesoft.org/releases/"));
@@ -66,7 +75,7 @@ public final class MuleForgeDiscovery {
 
         final MavenRepositorySystemSession session = new MavenRepositorySystemSession();
 
-        final LocalRepository localRepo = new LocalRepository("target/local-repo");
+        final LocalRepository localRepo = new LocalRepository(this.localRepository);
         session.setLocalRepositoryManager(system.newLocalRepositoryManager(localRepo));
 
         final Dependency dependency = new Dependency(new DefaultArtifact(groupId, artifactId, MuleForgeDiscovery.DEFAULT_EXTENSION, version), MuleForgeDiscovery.DEFAULT_SCOPE);
