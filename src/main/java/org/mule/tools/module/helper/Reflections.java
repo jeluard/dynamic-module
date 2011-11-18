@@ -1,5 +1,6 @@
 package org.mule.tools.module.helper;
 
+import java.lang.reflect.Field;
 import org.mule.util.StringUtils;
 
 /**
@@ -8,6 +9,42 @@ import org.mule.util.StringUtils;
 public final class Reflections {
 
     private Reflections() {
+    }
+
+    public static Field setAccessible(final Object object, final String propertyName) {
+        try {
+            final Field field = object.getClass().getDeclaredField(propertyName);
+            field.setAccessible(true);
+            return field;
+        } catch (NoSuchFieldException e) {
+            throw new RuntimeException("Failed to make <"+propertyName+"> accessible", e);
+        }
+    }
+
+    /**
+     * @param propertyName
+     * @return default getter name for specified property
+     */
+    public static String getterMethodName(final String propertyName) {
+        return "get"+StringUtils.capitalize(propertyName);
+    }
+
+    /**
+     * Get value of property for specified object.
+     * @param propertyName
+     * @param object
+     */
+    public static Object get(final Object object, final String propertyName) {
+        try {
+            return Reflections.invoke(object, Reflections.getterMethodName(propertyName), void.class);
+        } catch (RuntimeException e) {
+            final Field field = Reflections.setAccessible(object, propertyName);
+            try {
+                return field.get(object);
+            } catch(IllegalAccessException ee) {
+                throw new RuntimeException(ee);
+            }
+        }
     }
 
     /**
@@ -25,7 +62,16 @@ public final class Reflections {
      * @param value 
      */
     public static void set(final Object object, final String propertyName, final Object value) {
-        Reflections.invoke(object, Reflections.setterMethodName(propertyName), value);
+        try {
+            Reflections.invoke(object, Reflections.setterMethodName(propertyName), value);
+        } catch (RuntimeException e) {
+            final Field field = Reflections.setAccessible(object, propertyName);
+            try {
+                field.set(object, value);
+            } catch(IllegalAccessException ee) {
+                throw new RuntimeException(ee);
+            }
+        }
     }
 
     private static Class<?> asPrimitiveType(final Class<?> type) {
