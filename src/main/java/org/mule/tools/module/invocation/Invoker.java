@@ -16,25 +16,24 @@ import org.mule.api.processor.MessageProcessor;
 import org.mule.tools.module.helper.MuleContexts;
 import org.mule.tools.module.helper.MuleEvents;
 import org.mule.tools.module.helper.Reflections;
-import org.mule.tools.module.model.Module;
 
 //TODO Add support for OAuth1 and OAuth2
 public class Invoker {
 
     private final MessageProcessor messageProcessor;
     private final Object moduleObject;
-    private final Map<Module.Parameter, Object> parameterValues;
+    private final Map<String, Object> parameterValues;
     private final ConnectionManager<?, ?> connectionManager;
     private final int retryMax;
     private static final String RETRY_MAX_FIELD_NAME = "retryMax";
     private static final String MODULE_OBJECT_REGISTRY_KEY = "moduleObject";
     private MuleContext context;
 
-    public Invoker(final MessageProcessor processor, final Object moduleObject, final Map<Module.Parameter, Object> parameterValues, final int retryMax) {
+    public Invoker(final MessageProcessor processor, final Object moduleObject, final Map<String, Object> parameterValues, final int retryMax) {
         this(processor, moduleObject, parameterValues, null, retryMax);
     }
 
-    public Invoker(final MessageProcessor messageProcessor, final Object moduleObject, final Map<Module.Parameter, Object> parameterValues, final ConnectionManager<?, ?> connectionManager, final int retryMax) {
+    public Invoker(final MessageProcessor messageProcessor, final Object moduleObject, final Map<String, Object> parameterValues, final ConnectionManager<?, ?> connectionManager, final int retryMax) {
         if (messageProcessor == null) {
             throw new IllegalArgumentException("null messageProcessor");
         }
@@ -67,8 +66,8 @@ public class Invoker {
         this.context = context;
 
         //Initialise moduleObject
-        for (final Map.Entry<Module.Parameter, Object> entry : this.parameterValues.entrySet()) {
-            Reflections.set(this.moduleObject, entry.getKey().getName(), entry.getValue());
+        for (final Map.Entry<String, Object> entry : this.parameterValues.entrySet()) {
+            Reflections.set(this.moduleObject, entry.getKey(), entry.getValue());
         }
         context.getRegistry().registerObject(Invoker.MODULE_OBJECT_REGISTRY_KEY, this.moduleObject);
 
@@ -85,12 +84,10 @@ public class Invoker {
         }
     }
 
-    public final <T> T invoke(final Object message) throws MuleException {
-        return (T) invoke(MuleEvents.defaultMuleEvent(message, this.context));
-    }
-
-    public final <T> T invoke(final MuleEvent event) throws MuleException {
-        return (T) this.messageProcessor.process(event).getMessage().getPayload();
+    public final <T> T invoke(final Map<String, Object> parameterValues) throws MuleException {
+        //TODO fix this
+        final MuleEvent muleEvent = MuleEvents.defaultMuleEvent(parameterValues, this.context);
+        return (T) this.messageProcessor.process(muleEvent).getMessage().getPayload();
     }
 
     public final void close() throws MuleException {
