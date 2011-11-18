@@ -76,18 +76,23 @@ public class Module {
 
         private final String name;
         private final MessageProcessor messageProcessor;
+        private final List<Parameter> parameters;
         private final boolean intercepting;
 
-        public Processor(final String name, final MessageProcessor messageProcessor, final boolean intercepting) {
+        public Processor(final String name, final MessageProcessor messageProcessor, final List<Parameter> parameters, final boolean intercepting) {
             if (name == null) {
                 throw new IllegalArgumentException("null name");
             }
             if (messageProcessor == null) {
                 throw new IllegalArgumentException("null messageProcessor");
             }
+            if (parameters == null) {
+                throw new IllegalArgumentException("null parameters");
+            }
 
             this.name = name;
             this.messageProcessor = messageProcessor;
+            this.parameters = parameters;
             this.intercepting = intercepting;
         }
 
@@ -99,13 +104,17 @@ public class Module {
             return this.messageProcessor;
         }
 
+        public final List<Parameter> getParameters() {
+            return this.parameters;
+        }
+
         public final boolean isIntercepting() {
             return this.intercepting;
         }
 
         @Override
         public String toString() {
-            return "name: <"+this.name+"> type: <"+this.messageProcessor.getClass().getName()+"> intercepting: <"+this.intercepting+">";
+            return "name: <"+this.name+"> type: <"+this.messageProcessor.getClass().getName()+"> parameters: <"+this.parameters+"> intercepting: <"+this.intercepting+">";
         }
 
     }
@@ -159,23 +168,6 @@ public class Module {
 
     public final Capabilities getCapabilities() {
         return this.capabilities;
-    }
-
-    /**
-     * @param name
-     * @return {@link Parameter} with specified name, null if none can be found
-     */
-    public final Parameter getParameter(final String name) {
-        if (name == null) {
-            throw new IllegalArgumentException("null name");
-        }
-
-        for (final Parameter parameter : this.parameters) {
-            if (name.equals(parameter.getName())) {
-                return parameter;
-            }
-        }
-        return null;
     }
 
     public final List<Parameter> getParameters() {

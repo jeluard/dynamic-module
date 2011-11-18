@@ -37,6 +37,11 @@
             <artifactId>mule-devkit-annotations</artifactId>
             <version>${muleDevKitVersion}</version>
         </dependency>
+        <dependency>
+            <groupId>com.thoughtworks.paranamer</groupId>
+            <artifactId>paranamer</artifactId>
+            <version>2.4</version>
+        </dependency>
         <!-- Aether dependencies -->
         <dependency>
           <groupId>org.sonatype.aether</groupId>
