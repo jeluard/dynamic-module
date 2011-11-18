@@ -100,6 +100,7 @@ public class Invoker {
     }
 
     public final void close() throws MuleException {
+        this.context.dispose();
         Stoppable.class.cast(this.messageProcessor).stop();
         Disposable.class.cast(this.messageProcessor).dispose();
     }
