@@ -6,14 +6,12 @@ import java.net.URL;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import org.apache.maven.repository.internal.DefaultServiceLocator;
 import org.apache.maven.repository.internal.MavenRepositorySystemSession;
-
 import org.mule.tools.module.discovery.wagon.ManualWagonProvider;
-
 import org.sonatype.aether.RepositorySystem;
 import org.sonatype.aether.artifact.Artifact;
 import org.sonatype.aether.collection.CollectRequest;
