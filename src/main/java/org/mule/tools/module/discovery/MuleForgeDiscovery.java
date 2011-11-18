@@ -7,10 +7,12 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.apache.maven.repository.internal.DefaultServiceLocator;
 import org.apache.maven.repository.internal.MavenRepositorySystemSession;
 
-import org.mule.tools.module.ManualWagonProvider;
+import org.mule.tools.module.discovery.wagon.ManualWagonProvider;
 
 import org.sonatype.aether.RepositorySystem;
 import org.sonatype.aether.artifact.Artifact;
@@ -32,6 +34,8 @@ import org.sonatype.aether.util.graph.PreorderNodeListGenerator;
  * Helper methods for listing dependencies of MuleForge artifact.
  */
 public final class MuleForgeDiscovery {
+
+    private static final Logger LOGGER = Logger.getLogger(MuleForgeDiscovery.class.getPackage().getName());
 
     private final File localRepository;
     private static final File DEFAULT_LOCAL_REPOSITORY = new File(System.getProperty("user.home")+"/.m2/repository");
@@ -87,17 +91,18 @@ public final class MuleForgeDiscovery {
 
         final DependencyNode node = system.collectDependencies(session, collectRequest).getRoot();
 
-        final DependencyRequest dependencyRequest = new DependencyRequest(node, null);
+        system.resolveDependencies(session, new DependencyRequest(node, null));
 
-        system.resolveDependencies(session, dependencyRequest);
-
-        final PreorderNodeListGenerator nlg = new PreorderNodeListGenerator();
-        node.accept( nlg );
+        final PreorderNodeListGenerator nodeListGenerator = new PreorderNodeListGenerator();
+        node.accept(nodeListGenerator);
 
         final List<URL> urls = new LinkedList<URL>();
-        for (final Artifact artifact : nlg.getArtifacts(true)) {
+        for (final Artifact artifact : nodeListGenerator.getArtifacts(true)) {
             if (artifact.getFile() == null) {
-                //TODO Log
+                if (MuleForgeDiscovery.LOGGER.isLoggable(Level.FINE)) {
+                    MuleForgeDiscovery.LOGGER.log(Level.FINE, "Failed to resolve artifact <{0}>; it will be ignored", artifact.getArtifactId());
+                }
+
                 continue;
             }
 
