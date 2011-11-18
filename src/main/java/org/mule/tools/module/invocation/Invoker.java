@@ -85,7 +85,16 @@ public class Invoker {
     }
 
     public final <T> T invoke(final Map<String, Object> parameterValues) throws MuleException {
-        //TODO fix this
+        //Set all parameter values on the MessageProcessor.
+        for (final Map.Entry<String, Object> entry : parameterValues.entrySet()) {
+            final String parameterName = entry.getKey();
+            try {
+                Reflections.invoke(this.messageProcessor, Reflections.setterMethodName(entry.getKey()), entry.getValue(), Object.class);
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to set parameter <"+parameterName+">", e);
+            }
+        }
+
         final MuleEvent muleEvent = MuleEvents.defaultMuleEvent(parameterValues, this.context);
         return (T) this.messageProcessor.process(muleEvent).getMessage().getPayload();
     }
