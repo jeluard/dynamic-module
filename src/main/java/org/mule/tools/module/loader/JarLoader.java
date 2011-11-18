@@ -1,10 +1,14 @@
 package org.mule.tools.module.loader;
 
+import com.thoughtworks.paranamer.BytecodeReadingParanamer;
+import com.thoughtworks.paranamer.Paranamer;
 import java.io.IOException;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Level;
@@ -27,6 +31,8 @@ public class JarLoader {
 
     private static final Logger LOGGER = Logger.getLogger(JarLoader.class.getPackage().getName());
 
+    private static final Paranamer PARANAMER = new BytecodeReadingParanamer();
+
     protected final List<String> findPotentialModuleClassNames(final List<String> allFileNames) {
         final List<String> potentialModuleClassNames = new LinkedList<String>();
         for (final String fileName : allFileNames) {
@@ -41,15 +47,21 @@ public class JarLoader {
         final List<String> potentialModuleClassNames = findPotentialModuleClassNames(allFileNames);
         for (final String potentialModuleClassName : potentialModuleClassNames) {
             final String className = extractClassName(potentialModuleClassName);
+            final Class<?> moduleClass;
             try {
-                return classLoader.loadClass(className);
+                moduleClass = classLoader.loadClass(className);
             } catch (ClassNotFoundException e) {
-                if (JarLoader.LOGGER.isLoggable(Level.FINE)) {
-                    JarLoader.LOGGER.log(Level.FINE, "Failed to load <{0}>{1}", new Object[]{className, e.toString()});
+                throw new IllegalArgumentException("Failed to load <"+className+">", e);
+            }
+            if (moduleClass.getAnnotation(org.mule.api.annotations.Module.class) == null && moduleClass.getAnnotation(org.mule.api.annotations.Connector.class) == null) {
+                if (JarLoader.LOGGER.isLoggable(Level.WARNING)) {
+                    JarLoader.LOGGER.log(Level.WARNING, "Skipping invalid module <{0}>", className);
                 }
 
                 continue;
             }
+
+            return moduleClass;
         }
         return null;
     }
@@ -77,15 +89,18 @@ public class JarLoader {
         try {
             return classLoader.loadClass(messageProcessorName);
         } catch (Exception e) {
-            e.printStackTrace();
             return null;
         }
     }
 
     public Module load(final List<URL> urls) throws IOException {
-        final List<String> allFileNames = Jars.allFileNames(urls.get(0));
-        final ClassLoader classLoader = new URLClassLoader(urls.toArray(new URL[urls.size()]));
+        final URL moduleJar = urls.get(0);
+        final List<String> allFileNames = Jars.allFileNames(moduleJar);
+        final URLClassLoader classLoader = new URLClassLoader(urls.toArray(new URL[urls.size()]));
         final Class<?> moduleClass = findModuleClass(allFileNames, classLoader);
+        if (moduleClass == null) {
+            throw new IllegalArgumentException("Failed to find Module class in <"+moduleJar+">");
+        }
         final Object module;
         try {
             module = moduleClass.newInstance();
@@ -95,17 +110,14 @@ public class JarLoader {
         final org.mule.api.annotations.Module moduleAnnotation = moduleClass.getAnnotation(org.mule.api.annotations.Module.class);
         if (moduleAnnotation != null) {
             return createModule(moduleAnnotation, module, moduleClass, classLoader);
+        } else {
+            return createConnector(moduleClass.getAnnotation(org.mule.api.annotations.Connector.class), module, moduleClass, classLoader);
         }
-        final org.mule.api.annotations.Connector connectorAnnotation = moduleClass.getAnnotation(org.mule.api.annotations.Connector.class);
-        if (connectorAnnotation != null) {
-            return createConnector(connectorAnnotation, module, moduleClass, classLoader);
-        }
-        throw new IllegalArgumentException("Cannot find either @Module or @Connector annotation on <"+moduleClass+">");
     }
 
     protected final String extractClassName(final String name) {
         final String strippedClassName = name.substring(0, name.lastIndexOf("."));
-        return strippedClassName.replaceAll("/", ".");
+        return strippedClassName.replace('/', '.');
     }
 
     protected final Module createModule(final org.mule.api.annotations.Module annotation, final Object module, final Class<?> moduleClass, final ClassLoader classLoader) {
@@ -169,6 +181,39 @@ public class JarLoader {
         return method.getName();
     }
 
+    protected final String[] extractMethodParameterNames(final Method method) {
+        final String[] parameterNames = JarLoader.PARANAMER.lookupParameterNames(method, false);
+        if (parameterNames != null) {
+            return parameterNames;
+        }
+        return JarLoader.PARANAMER.lookupParameterNames(method, false);
+    }
+
+    protected final List<Connector.Parameter> listProcessorParameters(final Class<?> moduleClass, final Method method) {
+        final List<Connector.Parameter> parameters = new LinkedList<Connector.Parameter>();
+        final String[] parameterNames = extractMethodParameterNames(method);
+        final Class<?>[] parameterTypes = method.getParameterTypes();
+        final Annotation[][] parameterAnnotations = method.getParameterAnnotations();
+        for (int i = 0; i < parameterTypes.length; i++) {
+            final String name = parameterNames[i];
+            final Class<?> type = parameterTypes[i];
+            final List<Annotation> annotations = Arrays.asList(parameterAnnotations[i]);
+            boolean optional = false;
+            String defaultValue = null;
+            for (final Annotation annotation : annotations) {
+                if (annotation instanceof Optional) {
+                    optional = true;
+                }
+                if (annotation instanceof Default) {
+                    defaultValue = Default.class.cast(annotation).value();
+                }
+            }
+
+            parameters.add(new Connector.Parameter(name, type, optional, defaultValue));
+        }
+        return parameters;
+    }
+
     protected final List<Connector.Processor> listProcessors(final Class<?> moduleClass, final ClassLoader classLoader) {
         final List<Connector.Processor> processors = new LinkedList<Connector.Processor>();
         for (final Method method : moduleClass.getMethods()) {
@@ -184,7 +229,7 @@ public class JarLoader {
                 } catch (Exception e) {
                     throw new IllegalArgumentException("Failed to instantiate MessageProcessor class <"+messageProcessorClass.getCanonicalName()+">", e);
                 }
-                processors.add(new Connector.Processor(extractProcessorname(annotation, method), messageProcessor, annotation.intercepting()));
+                processors.add(new Connector.Processor(extractProcessorname(annotation, method), messageProcessor, listProcessorParameters(moduleClass, method), annotation.intercepting()));
             }
         }
         return processors;
