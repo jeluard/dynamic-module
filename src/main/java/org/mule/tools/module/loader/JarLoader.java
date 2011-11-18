@@ -1,8 +1,5 @@
 package org.mule.tools.module.loader;
 
-import com.thoughtworks.paranamer.BytecodeReadingParanamer;
-import com.thoughtworks.paranamer.Paranamer;
-
 import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
@@ -32,21 +29,13 @@ public class JarLoader {
 
     private static final Logger LOGGER = Logger.getLogger(JarLoader.class.getPackage().getName());
 
-    private final Paranamer paranamer;
-    private static final Paranamer DEFAULT_PARANAMER = new BytecodeReadingParanamer();
     private static final String MODULE_CLASS_SUFFIX = "Module";
     private static final String MESSAGE_PROCESSOR_CLASS_SUFFIX = "MessageProcessor";
     private static final String CONNECTION_MANAGER_CLASS_SUFFIX = "ConnectionManager";
     private static final String CAPABILITIES_ADAPTER_CLASS_SUFFIX = "CapabilitiesAdapter";
     private static final String CONFIG_PACKAGE_PATH = "config.";
-
-    public JarLoader() {
-        this(JarLoader.DEFAULT_PARANAMER);
-    }
-
-    public JarLoader(final Paranamer paranamer) {
-        this.paranamer = paranamer;
-    }
+    private static final String PARAMETER_TYPE_FIELD_PREFIX = "_";
+    private static final String PARAMETER_TYPE_FIELD_SUFFIX = "Type";
 
     /**
      * @param classLoader
@@ -121,7 +110,7 @@ public class JarLoader {
         return loadClass(classLoader, messageProcessorName);
     }
 
-    public Module load(final List<URL> urls) throws IOException {
+    public final Module load(final List<URL> urls) throws IOException {
         final URL moduleJar = urls.get(0);
         final List<String> allFileNames = Jars.allFileNames(moduleJar);
         final URLClassLoader classLoader = new URLClassLoader(urls.toArray(new URL[urls.size()]));
@@ -194,30 +183,30 @@ public class JarLoader {
         return parameters;
     }
 
-    protected final String extractProcessorname(final Processor annotation, final Method method) {
+    protected final String extractProcessorName(final Processor annotation, final Method method) {
         if (!"".equals(annotation.name())) {
             return annotation.name();
         }
         return method.getName();
     }
 
-    protected final String[] extractMethodParameterNames(final Method method) {
-        final String[] parameterNames = this.paranamer.lookupParameterNames(method, false);
-        if (parameterNames != null) {
-            return parameterNames;
-        }
+    protected final String[] extractMethodParameterNames(final Method method, final MessageProcessor messageProcessor) {
+        final List<String> parameterNames = new LinkedList<String>();
+        for (final Field field : messageProcessor.getClass().getDeclaredFields()) {
+            final String fieldName = field.getName();
+            if (!(fieldName.startsWith(JarLoader.PARAMETER_TYPE_FIELD_PREFIX) && fieldName.endsWith(JarLoader.PARAMETER_TYPE_FIELD_SUFFIX))) {
+                continue;
+            }
 
-        //Fall back to type inferred names
-        final List<String> inferredParameterNames = new LinkedList<String>();
-        for (final Class<?> type : method.getParameterTypes()) {
-            inferredParameterNames.add(type.getSimpleName());
+            final String parameterName = StringUtils.uncapitalize(fieldName.substring(JarLoader.PARAMETER_TYPE_FIELD_PREFIX.length(), fieldName.length()-JarLoader.PARAMETER_TYPE_FIELD_SUFFIX.length()));
+            parameterNames.add(parameterName);
         }
-        return inferredParameterNames.toArray(new String[inferredParameterNames.size()]);
+        return parameterNames.toArray(new String[parameterNames.size()]);
     }
 
-    protected final List<Connector.Parameter> listProcessorParameters(final Class<?> moduleClass, final Method method) {
+    protected final List<Connector.Parameter> listProcessorParameters(final Class<?> moduleClass, final Method method, final MessageProcessor messageProcessor) {
         final List<Connector.Parameter> parameters = new LinkedList<Connector.Parameter>();
-        final String[] parameterNames = extractMethodParameterNames(method);
+        final String[] parameterNames = extractMethodParameterNames(method, messageProcessor);
         final Class<?>[] parameterTypes = method.getParameterTypes();
         final Annotation[][] parameterAnnotations = method.getParameterAnnotations();
         for (int i = 0; i < parameterTypes.length; i++) {
@@ -253,7 +242,7 @@ public class JarLoader {
                 if (messageProcessor == null) {
                     throw new IllegalArgumentException("Failed to instantiate MessageProcessor class <"+messageProcessorClass.getCanonicalName()+">");
                 }
-                processors.add(new Connector.Processor(extractProcessorname(annotation, method), messageProcessor, listProcessorParameters(moduleClass, method), annotation.intercepting()));
+                processors.add(new Connector.Processor(extractProcessorName(annotation, method), messageProcessor, listProcessorParameters(moduleClass, method, messageProcessor), annotation.intercepting()));
             }
         }
         return processors;
