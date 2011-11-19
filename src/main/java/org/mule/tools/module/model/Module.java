@@ -7,9 +7,6 @@ import java.util.List;
 import org.mule.api.Capabilities;
 import org.mule.api.processor.MessageProcessor;
 
-/**
- * TODO Add poolable support
- */
 public class Module {
 
     /**
@@ -129,7 +126,7 @@ public class Module {
     private final List<Parameter> parameters;
     private final List<Processor> processors;
     private final ClassLoader classLoader;
-    //TODO extract MessageProcessor
+    //TODO extract MessageSource
 
     public Module(final String name, final String minMuleVersion, final Object module, final Capabilities capabilities, final List<Parameter> parameters, final List<Processor> processors, final ClassLoader classLoader) {
         if (name == null) {
