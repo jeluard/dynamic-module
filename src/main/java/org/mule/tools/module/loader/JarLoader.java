@@ -218,7 +218,17 @@ public class JarLoader {
         if (!"".equals(annotation.name())) {
             return annotation.name();
         }
-        return method.getName();
+
+        final StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < method.getName().length(); i++) {
+            final char character = method.getName().charAt(i);
+            if (Character.isUpperCase(character)) {
+                builder.append("-").append(Character.toLowerCase(character));
+            } else {
+                builder.append(character);
+            }
+        }
+        return builder.toString();
     }
 
     protected final String[] extractMethodParameterNames(final Method method, final MessageProcessor messageProcessor) {
