@@ -72,7 +72,6 @@ public class ModuleInvoker {
             }
         }
         if (!incorrectParameterTypes.isEmpty()) {
-            //TODO print correct type for each incorrect type.
             final String terminaison = incorrectParameterTypes.size()>1?"s":"";
             throw new IllegalArgumentException("Incorrect type"+terminaison+" for parameter"+terminaison+" <"+incorrectParameterTypes+">");
         }
