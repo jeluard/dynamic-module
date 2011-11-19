@@ -2,11 +2,35 @@ Dynamic Module allows to programmatically discover/manipulate [Mule modules](htt
 
 # Discovery
 
-A module Jar plus all its dependencies can retrieved/locally installed using maven coordinates. Under the hoof [MuleForge](http://www.mulesoft.org/muleforge) will be accessed, dependencies resolved, artifacts downloaded and locally installed.
+Most of modules are available on MuleForge [Nexus repository](https://repository.mulesoft.org/nexus/index.html#welcome).
+Available modules/versions can be listed programmatically.
 
 ```java
-final List<URL> urls = new MuleForgeDiscovery().listDependencies("artifactId", "version");
-//urls is the List of module Jar plus all its dependencies (locally available ).
+final NexusBrowser browser = new NexusBrowser();
+
+//List all MuleSoft modules
+final List<List<NexusArtifact>> groups = browser.listArtifacts();
+
+//Or only their artifactId
+browser.listArtifactIds();
+
+//Or all versions of a specific module
+browser.listArtifactVersions("mule-module-sfdc");
+```
+
+A module Jar plus all its dependencies can retrieved/locally installed using maven coordinates. Under the hood [MuleForge](http://www.mulesoft.org/muleforge) will be accessed, dependencies resolved, artifacts downloaded and locally installed.
+
+```java
+//Using default local repository
+final List<URL> urls = new MavenRepositoryDiscoverer().listDependencies("artifactId", "version");
+
+//Or a specific local repository
+final File localRepository = ...;
+final List<URL> urls = new MavenRepositoryDiscoverer(localRepository).listDependencies("artifactId", "version");
+
+//Or a MuleForge remote repositories
+final MavenRepositoryDiscoverer discoverer = new MavenRepositoryDiscoverer(localRepository, MavenRepositoryDiscoverer.defaultMuleForgeRepositories());
+final List<URL> urls = discoverer.listDependencies("artifactId", "version");
 ```
 
 # Invocation
@@ -46,7 +70,9 @@ final Module module = new JarLoader().load(urls);
 # Example
 
 ```java
-final List<URL> urls = new MuleForgeDiscovery().listDependencies("mule-module-sfdc", "4.0-SNAPSHOT");
+final File localRepository = ...;
+final MavenRepositoryDiscoverer discoverer = new MavenRepositoryDiscoverer(localRepository, MavenRepositoryDiscoverer.defaultMuleForgeRepositories());
+final List<URL> urls = discoverer.listDependencies("mule-module-sfdc", "4.0-SNAPSHOT");
 
 final Connector connector = (Connector) new JarLoader().load(urls);
 connector.setUsername("username");
