@@ -2,9 +2,11 @@ package org.mule.tools.module.invocation;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -63,10 +65,6 @@ public class ModuleInvoker {
             final String parameterName = entry.getKey();
             final Module.Parameter parameter = Parameters.getParameter(defaultParameters, parameterName);
             if (parameter == null) {
-                if (ModuleInvoker.LOGGER.isLoggable(Level.WARNING)) {
-                    ModuleInvoker.LOGGER.log(Level.WARNING, "Value has been provided for unknown parameter <{0}>; it will be ignored", parameterName);
-                }
-
                 continue;
             }
 
@@ -101,12 +99,28 @@ public class ModuleInvoker {
      * @return 
      */
     protected final Map<String, Object> allParameterValues(final List<Module.Parameter> defaultParameters, final Map<String, Object> overridenParameterValues) {
-        final Map<String, Object> allParameterValues = new HashMap<String, Object>(overridenParameterValues);
+        final Map<String, Object> allParameterValues = new HashMap<String, Object>();
+        final Set<String> defaultParameterNames = new HashSet<String>();
         for (final Module.Parameter parameter : defaultParameters) {
-            if (!allParameterValues.containsKey(parameter.getName()) && (parameter.getDefaultValue() != null)) {
+            //Only add default values
+            if (parameter.getDefaultValue() != null) {
                 //TODO rely on Mule Transformers
                 allParameterValues.put(parameter.getName(), Converters.convert(parameter.getType(), parameter.getDefaultValue()));
             }
+            defaultParameterNames.add(parameter.getName());
+        }
+        for (final Map.Entry<String, Object> entry : overridenParameterValues.entrySet()) {
+            //Only add existing parameters
+            final String parameterName = entry.getKey();
+            if (!defaultParameterNames.contains(parameterName)) {
+                if (ModuleInvoker.LOGGER.isLoggable(Level.WARNING)) {
+                    ModuleInvoker.LOGGER.log(Level.WARNING, "Value has been provided for unknown parameter <{0}>; it will be ignored", parameterName);
+                }
+
+                continue;
+            }
+
+            allParameterValues.put(parameterName, entry.getValue());
         }
         return allParameterValues;
     }
