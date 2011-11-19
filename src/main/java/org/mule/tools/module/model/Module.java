@@ -123,15 +123,20 @@ public class Module {
     }
 
     private final String name;
+    private final String minMuleVersion;
     private final Object module;
     private final Capabilities capabilities;
     private final List<Parameter> parameters;
     private final List<Processor> processors;
     private final ClassLoader classLoader;
+    //TODO extract MessageProcessor
 
-    public Module(final String name, final Object module, final Capabilities capabilities, final List<Parameter> parameters, final List<Processor> processors, final ClassLoader classLoader) {
+    public Module(final String name, final String minMuleVersion, final Object module, final Capabilities capabilities, final List<Parameter> parameters, final List<Processor> processors, final ClassLoader classLoader) {
         if (name == null) {
             throw new IllegalArgumentException("null name");
+        }
+        if (minMuleVersion == null) {
+            throw new IllegalArgumentException("null minMuleVersion");
         }
         if (module == null) {
             throw new IllegalArgumentException("null modules");
@@ -150,6 +155,7 @@ public class Module {
         }
 
         this.name = name;
+        this.minMuleVersion = minMuleVersion;
         this.module = module;
         this.capabilities = capabilities;
         this.parameters = Collections.unmodifiableList(new ArrayList<Parameter>(parameters));
@@ -159,6 +165,10 @@ public class Module {
 
     public final String getName() {
         return this.name;
+    }
+
+    public final String getMinMuleVersion() {
+        return this.minMuleVersion;
     }
 
     public final Object getModule() {

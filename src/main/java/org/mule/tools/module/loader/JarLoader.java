@@ -176,7 +176,7 @@ public class JarLoader {
         if (capabilities == null) {
             throw new IllegalArgumentException("Failed to instantiate Capabilities class <"+capabilitiesClass.getCanonicalName()+">");
         }
-        return new Module(annotation.name(), module, capabilities, listParameters(moduleClass), listProcessors(moduleClass, classLoader), classLoader);
+        return new Module(annotation.name(), annotation.minMuleVersion(), module, capabilities, listParameters(moduleClass), listProcessors(moduleClass, classLoader), classLoader);
     }
 
     protected final Connector createConnector(final org.mule.api.annotations.Connector annotation, final Object module, final Class<?> moduleClass, final ClassLoader classLoader) {
@@ -197,9 +197,9 @@ public class JarLoader {
             if (connectionManager == null) {
                 throw new IllegalArgumentException("Failed to instantiate ConnectionManager class <"+connectionManagerClass.getCanonicalName()+">");
             }
-            return new Connector(annotation.name(), module, capabilities, listParameters(moduleClass), listProcessors(moduleClass, classLoader), connectionManager, classLoader);
+            return new Connector(annotation.name(), annotation.minMuleVersion(), module, capabilities, listParameters(moduleClass), listProcessors(moduleClass, classLoader), connectionManager, classLoader);
         }
-        return new Connector(annotation.name(), module, capabilities, listParameters(moduleClass), listProcessors(moduleClass, classLoader), classLoader);
+        return new Connector(annotation.name(), annotation.minMuleVersion(), module, capabilities, listParameters(moduleClass), listProcessors(moduleClass, classLoader), classLoader);
     }
     
     protected final List<Connector.Parameter> listParameters(final Class<?> moduleClass) {

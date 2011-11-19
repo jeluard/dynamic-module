@@ -16,14 +16,14 @@ public class Connector extends Module {
 
     private final ConnectionManager<?, ?> connectionManager;
 
-    public Connector(final String name, final Object module, final Capabilities capabilities, final List<Module.Parameter> parameters, final List<Module.Processor> processors, final ClassLoader classLoader) {
-        super(name, module, capabilities, parameters, processors, classLoader);
+    public Connector(final String name, final String minMuleVersion, final Object module, final Capabilities capabilities, final List<Module.Parameter> parameters, final List<Module.Processor> processors, final ClassLoader classLoader) {
+        super(name, minMuleVersion, module, capabilities, parameters, processors, classLoader);
 
         this.connectionManager = null;
     }
 
-    public Connector(final String name, final Object module, final Capabilities capabilities, final List<Module.Parameter> parameters, final List<Module.Processor> processors, final ConnectionManager<?, ?> connectionManager, final ClassLoader classLoader) {
-        super(name, module, capabilities, parameters, processors, classLoader);
+    public Connector(final String name, final String minMuleVersion, final Object module, final Capabilities capabilities, final List<Module.Parameter> parameters, final List<Module.Processor> processors, final ConnectionManager<?, ?> connectionManager, final ClassLoader classLoader) {
+        super(name, minMuleVersion, module, capabilities, parameters, processors, classLoader);
 
         if (connectionManager == null) {
             throw new IllegalArgumentException("null connectionManager");
