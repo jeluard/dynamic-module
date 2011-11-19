@@ -9,6 +9,8 @@ import org.mule.tools.module.helper.ConnectionManagers;
 
 /**
  * @see org.mule.api.annotations.Connector
+ * 
+ * TODO Abstract connection management stuff, pull it in Module, suppress this.
  */
 public class Connector extends Module {
 

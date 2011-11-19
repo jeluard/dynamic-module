@@ -16,6 +16,9 @@ import org.mule.tools.module.helper.Parameters;
 import org.mule.tools.module.model.Connector;
 import org.mule.tools.module.model.Module;
 
+/**
+ * TODO add support for LifeCycle methods
+ */
 public class ModuleInvoker {
 
     private static final Logger LOGGER = Logger.getLogger(ModuleInvoker.class.getPackage().getName());

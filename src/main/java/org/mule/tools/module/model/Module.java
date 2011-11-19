@@ -7,6 +7,9 @@ import java.util.List;
 import org.mule.api.Capabilities;
 import org.mule.api.processor.MessageProcessor;
 
+/**
+ * TODO Add poolable support
+ */
 public class Module {
 
     /**
