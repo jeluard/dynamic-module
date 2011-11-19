@@ -7,6 +7,8 @@ import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Level;
@@ -20,6 +22,7 @@ import org.mule.api.annotations.Processor;
 import org.mule.api.annotations.param.Default;
 import org.mule.api.annotations.param.Optional;
 import org.mule.api.processor.MessageProcessor;
+import org.mule.tools.module.helper.Classes;
 import org.mule.tools.module.helper.Jars;
 import org.mule.tools.module.model.Connector;
 import org.mule.tools.module.model.Module;
@@ -30,6 +33,7 @@ public class JarLoader {
     private static final Logger LOGGER = Logger.getLogger(JarLoader.class.getPackage().getName());
 
     private static final String MODULE_CLASS_SUFFIX = "Module";
+    private static final String CONNECTOR_CLASS_SUFFIX = "Connector";
     private static final String MESSAGE_PROCESSOR_CLASS_SUFFIX = "MessageProcessor";
     private static final String CONNECTION_MANAGER_CLASS_SUFFIX = "ConnectionManager";
     private static final String CAPABILITIES_ADAPTER_CLASS_SUFFIX = "CapabilitiesAdapter";
@@ -66,7 +70,8 @@ public class JarLoader {
     protected final List<String> findPotentialModuleClassNames(final List<String> allFileNames) {
         final List<String> potentialModuleClassNames = new LinkedList<String>();
         for (final String fileName : allFileNames) {
-            if (fileName.endsWith(JarLoader.MODULE_CLASS_SUFFIX+".class")) {
+            if (fileName.endsWith(JarLoader.MODULE_CLASS_SUFFIX+".class") ||
+                    fileName.endsWith(JarLoader.CONNECTOR_CLASS_SUFFIX+".class")) {
                 potentialModuleClassNames.add(fileName);
             }
         }
@@ -75,6 +80,9 @@ public class JarLoader {
 
     protected final Class<?> findModuleClass(final List<String> allFileNames, final ClassLoader classLoader) {
         final List<String> potentialModuleClassNames = findPotentialModuleClassNames(allFileNames);
+        if (potentialModuleClassNames.isEmpty()) {
+            throw new IllegalArgumentException("Failed to find potential Module class among <"+allFileNames+">");
+        }
         for (final String potentialModuleClassName : potentialModuleClassNames) {
             final String className = extractClassName(potentialModuleClassName);
             final Class<?> moduleClass = loadClass(classLoader, className);
@@ -95,7 +103,6 @@ public class JarLoader {
     }
 
     protected final Class<?> findCapabilitiesClass(final Class<?> moduleClass, final ClassLoader classLoader) {
-        //TODO Make sure we get the most specific "Module" sub-class.
         final String capabilitiesClassName = moduleClass.getName().replace(moduleClass.getSimpleName(), JarLoader.CONFIG_PACKAGE_PATH+moduleClass.getSimpleName())+JarLoader.CAPABILITIES_ADAPTER_CLASS_SUFFIX;
         return loadClass(classLoader, capabilitiesClassName);
     }
@@ -110,6 +117,29 @@ public class JarLoader {
         return loadClass(classLoader, messageProcessorName);
     }
 
+    protected final List<Class<?>> findModuleSubClasses(final Class<?> moduleClass, final List<String> allFileNames, final URLClassLoader classLoader) {
+        final String moduleClassSimpleName = moduleClass.getSimpleName();
+        final List<Class<?>> subClasses = new LinkedList<Class<?>>();
+        for (final String fileName : allFileNames) {
+            if (fileName.contains(moduleClassSimpleName)) {
+                final Class<?> clazz = loadClass(classLoader, extractClassName(fileName));
+                if (Classes.allSuperClasses(clazz).contains(moduleClass)) {
+                    subClasses.add(clazz);
+                }
+            }
+        }
+        return subClasses;
+    }
+
+    protected final Class<?> findMostSpecificSubClass(final List<Class<?>> moduleSubClasses) {
+        return Collections.max(moduleSubClasses, new Comparator<Class<?>>() {
+            @Override
+            public int compare(final Class<?> class1, final Class<?> class2) {
+                return Integer.valueOf(Classes.allSuperClasses(class1).size()).compareTo(Classes.allSuperClasses(class2).size());
+            }
+        });
+    }
+
     public final Module load(final List<URL> urls) throws IOException {
         final URL moduleJar = urls.get(0);
         final List<String> allFileNames = Jars.allFileNames(moduleJar);
@@ -118,7 +148,9 @@ public class JarLoader {
         if (moduleClass == null) {
             throw new IllegalArgumentException("Failed to find Module class in <"+moduleJar+">");
         }
-        final Object module = newInstance(moduleClass);
+        final List<Class<?>> moduleSubClasses = findModuleSubClasses(moduleClass, allFileNames, classLoader);
+        final Class<?> mostSpecificSubClass = findMostSpecificSubClass(moduleSubClasses);
+        final Object module = newInstance(mostSpecificSubClass);
         if (module == null) {
             throw new IllegalArgumentException("Failed to instantiate Module class <"+moduleClass.getCanonicalName()+">");
         }
