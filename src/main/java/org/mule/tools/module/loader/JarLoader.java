@@ -171,7 +171,6 @@ public class JarLoader {
     }
     
     protected final List<Connector.Parameter> listParameters(final Class<?> moduleClass) {
-        //TODO on getter/setter level?
         final List<Connector.Parameter> parameters = new LinkedList<Connector.Parameter>();
         for (final Field field : moduleClass.getDeclaredFields()) {
             if (field.getAnnotation(Configurable.class) != null) {
