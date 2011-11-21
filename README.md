@@ -12,10 +12,10 @@ final NexusBrowser browser = new NexusBrowser();
 final List<List<NexusArtifact>> groups = browser.listArtifacts();
 
 //Or only their artifactId
-browser.listArtifactIds();
+final List<String> artifactIds = browser.listArtifactIds();
 
 //Or all versions of a specific module
-browser.listArtifactVersions("mule-module-sfdc");
+final List<String> versions = browser.listArtifactVersions("mule-module-sfdc");
 ```
 
 A module Jar plus all its dependencies can retrieved/locally installed using maven coordinates. Under the hood [MuleForge](http://www.mulesoft.org/muleforge) will be accessed, dependencies resolved, artifacts downloaded and locally installed.
@@ -85,8 +85,12 @@ parameterValues.put("url", new URL("https://test.salesforce.com/services/Soap/u/
 final ModuleInvoker moduleInvoker = new ModuleInvoker(module, parameterValues);
 
 final Map<String, Object> methodParameterValues = new HashMap<String, Object>();
-methodParameterValues.put("type", "type");
-methodParameterValues.put("objects", new LinkedList<Map<String, Object>>());
+methodParameterValues.put("type", "Account");
+final List<Map<String, Object>> objects = new LinkedList<Map<String, Object>>();
+final Map<String, Object> object = new HashMap<String, Object>();
+object.put("Name", "Account name");
+objects.add(object);
+methodParameterValues.put("objects", objects);
 
 moduleInvoker.invoke("create", methodParameterValues);
 moduleInvoker.close();
