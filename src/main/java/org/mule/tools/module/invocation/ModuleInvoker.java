@@ -125,7 +125,7 @@ public class ModuleInvoker {
         return allParameterValues;
     }
 
-    public final Object invoke(final String processorName, final Map<String, Object> overridenParameterValues) throws InitialisationException, MuleException {
+    public final <T> T invoke(final String processorName, final Map<String, Object> overridenParameterValues) throws InitialisationException, MuleException {
         if (processorName == null) {
             throw new IllegalArgumentException("null processorName");
         }
