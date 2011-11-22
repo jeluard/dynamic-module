@@ -54,7 +54,7 @@ A ModuleInvoker will handle Invoker lifecycle for you.
 
 ```java
 final Module module = new JarLoader().load(urls);
-//Setup this module if needed. For instance Connector will need credentials to be injected.
+//Setup this module if needed.
 
 final ModuleInvoker moduleInvoker = new ModuleInvoker(module, parameterValues);
 moduleInvoker.invoke("name", methodParameterValues);
@@ -74,10 +74,10 @@ final File localRepository = ...;
 final MavenRepositoryDiscoverer discoverer = new MavenRepositoryDiscoverer(localRepository, MavenRepositoryDiscoverer.defaultMuleForgeRepositories());
 final List<URL> urls = discoverer.listDependencies("mule-module-sfdc", "4.0-SNAPSHOT");
 
-final Connector connector = (Connector) new JarLoader().load(urls);
-connector.setUsername("username");
-connector.setPassword("password");
-connector.setSecurityToken("securityToken");
+final Module module = new JarLoader().load(urls);
+module.setUsername("username");
+module.setPassword("password");
+module.setSecurityToken("securityToken");
 
 final Map<String, Object> parameterValues = new HashMap<String, Object>();
 parameterValues.put("url", new URL("https://test.salesforce.com/services/Soap/u/23.0"));
