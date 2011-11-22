@@ -132,4 +132,18 @@ public final class Reflections {
         }
     }
 
+    /**
+     * @param <T>
+     * @param method
+     * @param object
+     * @return result of dynamic invocation of `method` on `object` with no argument.
+     */
+    public static <T> T invoke(final Object object, final String method) {
+        try {
+            return (T) object.getClass().getMethod(method).invoke(object);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to invoke <"+method+"> on <"+object+">", e);
+        }
+    }
+
 }

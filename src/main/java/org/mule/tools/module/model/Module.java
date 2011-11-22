@@ -5,7 +5,10 @@ import java.util.Collections;
 import java.util.List;
 
 import org.mule.api.Capabilities;
+import org.mule.api.Capability;
+import org.mule.api.ConnectionManager;
 import org.mule.api.processor.MessageProcessor;
+import org.mule.tools.module.helper.ConnectionManagers;
 
 public class Module {
 
@@ -126,9 +129,10 @@ public class Module {
     private final List<Parameter> parameters;
     private final List<Processor> processors;
     private final ClassLoader classLoader;
+    private final ConnectionManager<?, ?> connectionManager;
     //TODO extract MessageSource
 
-    public Module(final String name, final String minMuleVersion, final Object module, final Capabilities capabilities, final List<Parameter> parameters, final List<Processor> processors, final ClassLoader classLoader) {
+    public Module(final String name, final String minMuleVersion, final Object module, final Capabilities capabilities, final List<Parameter> parameters, final List<Processor> processors, final ConnectionManager<?, ?> connectionManager, final ClassLoader classLoader) {
         if (name == null) {
             throw new IllegalArgumentException("null name");
         }
@@ -150,6 +154,9 @@ public class Module {
         if (classLoader == null) {
             throw new IllegalArgumentException("null classLoader");
         }
+        if (connectionManager == null) {
+            throw new IllegalArgumentException("null connectionManager");
+        }
 
         this.name = name;
         this.minMuleVersion = minMuleVersion;
@@ -158,6 +165,19 @@ public class Module {
         this.parameters = Collections.unmodifiableList(new ArrayList<Parameter>(parameters));
         this.processors = Collections.unmodifiableList(new ArrayList<Processor>(processors));
         this.classLoader = classLoader;
+        this.connectionManager = connectionManager;
+
+        ensureConnectionManagementCapability();
+    }
+
+    protected final void ensureCapability(final Capability capability) {
+        if (!this.capabilities.isCapableOf(capability)) {
+            throw new IllegalArgumentException(Capabilities.class.getSimpleName()+" does not support "+Capability.CONNECTION_MANAGEMENT_CAPABLE);
+        }
+    }
+
+    protected final void ensureConnectionManagementCapability() {
+        ensureCapability(Capability.CONNECTION_MANAGEMENT_CAPABLE);
     }
 
     public final String getName() {
@@ -173,6 +193,9 @@ public class Module {
     }
 
     public Object getModuleObject() {
+        if (getConnectionManager() != null) {
+            return getConnectionManager();
+        }
         return getModule();
     }
 
@@ -188,8 +211,30 @@ public class Module {
         return this.processors;
     }
 
+    public final ConnectionManager<?, ?> getConnectionManager() {
+        return this.connectionManager;
+    }
+
     public final ClassLoader getClassLoader() {
         return this.classLoader;
+    }
+
+    public final void setUsername(final String username) {
+        ensureConnectionManagementCapability();
+
+        ConnectionManagers.setUsername(this.connectionManager, username);
+    }
+
+    public final void setPassword(final String password) {
+        ensureConnectionManagementCapability();
+
+        ConnectionManagers.setPassword(this.connectionManager, password);
+    }
+
+    public final void setSecurityToken(final String securityToken) {
+        ensureConnectionManagementCapability();
+
+        ConnectionManagers.setSecurityToken(this.connectionManager, securityToken);
     }
 
 }

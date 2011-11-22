@@ -15,7 +15,6 @@ import org.mule.api.lifecycle.InitialisationException;
 import org.mule.api.processor.MessageProcessor;
 import org.mule.tools.module.helper.Converters;
 import org.mule.tools.module.helper.Parameters;
-import org.mule.tools.module.model.Connector;
 import org.mule.tools.module.model.Module;
 
 /**
@@ -153,25 +152,9 @@ public class ModuleInvoker {
             return this.invokerCache.get(key);
         }
 
-        final Invoker invoker = createInvoker(messageProcessor);
+        final Invoker invoker = new Invoker(messageProcessor, this.module.getModuleObject(), this.parameterValues, this.module.getConnectionManager(), this.retryMax);
         this.invokerCache.put(key, invoker);
         invoker.initialise();
-        return invoker;
-    }
-
-    /**
-     * @param messageProcessor
-     * @return
-     * @throws InitialisationException
-     * @throws MuleException 
-     */
-    protected final Invoker createInvoker(final MessageProcessor messageProcessor) {
-        final Invoker invoker;
-        if (this.module instanceof Connector) {
-            invoker = new Invoker(messageProcessor, this.module.getModuleObject(), this.parameterValues, Connector.class.cast(this.module).getConnectionManager(), this.retryMax);
-        } else {
-            invoker = new Invoker(messageProcessor, this.module.getModuleObject(), this.parameterValues, this.retryMax);
-        }
         return invoker;
     }
 
