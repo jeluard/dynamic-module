@@ -272,14 +272,14 @@ public class DynamicModule {
     }
 
     /**
-     * Register {@link Listener} to `sourceName` {@link Source} with `overriddenParameters`.
+     * Subscribe {@link Listener} to `sourceName` {@link Source} with `overriddenParameters`.
      * @param sourceName
      * @param overriddenParameters
      * @param listener
      * @throws InitialisationException
      * @throws MuleException 
      */
-    public synchronized final void register(final String sourceName, final Map<String, Object> overriddenParameters, final Listener listener) throws InitialisationException, MuleException {
+    public synchronized final void subscribe(final String sourceName, final Map<String, Object> overriddenParameters, final Listener listener) throws InitialisationException, MuleException {
         if (sourceName == null) {
             throw new IllegalArgumentException("null sourceName");
         }
@@ -297,18 +297,18 @@ public class DynamicModule {
 
         final Registrar registrar = getRegistrar(source.getMessageSource());
         if (registrar != null) {
-            throw new IllegalStateException("Source <"+sourceName+"> is already registered");
+            throw new IllegalStateException("Source <"+sourceName+"> is already subscribed");
         }
         createAndCacheRegistrar(source.getMessageSource()).start(allParameters(source.getParameters(), overriddenParameters), listener);
     }
 
     /**
-     * Unregister {@link Listener} previously registered to `sourceName` {@link Source}.
+     * Unsubscribe {@link Listener} previously registered to `sourceName` {@link Source}.
      * @param sourceName
      * @throws InitialisationException
      * @throws MuleException 
      */
-    public final void unregister(final String sourceName) throws MuleException {
+    public final void unsubscribe(final String sourceName) throws MuleException {
         if (sourceName == null) {
             throw new IllegalArgumentException("null sourceName");
         }
@@ -320,7 +320,7 @@ public class DynamicModule {
 
         final Registrar registrar = getRegistrar(source.getMessageSource());
         if (registrar == null) {
-            throw new IllegalStateException("Source <"+sourceName+"> is not registered");
+            throw new IllegalStateException("Source <"+sourceName+"> is not subscribed");
         }
         registrar.stop();
     }
