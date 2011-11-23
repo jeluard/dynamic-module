@@ -12,6 +12,7 @@ import java.util.logging.Logger;
 
 import org.mule.api.MuleContext;
 import org.mule.api.MuleException;
+import org.mule.api.lifecycle.Disposable;
 import org.mule.api.lifecycle.InitialisationException;
 import org.mule.api.processor.MessageProcessor;
 import org.mule.api.registry.RegistrationException;
@@ -26,7 +27,7 @@ import org.mule.tools.module.helper.Reflections;
 import org.mule.tools.module.model.Module;
 import org.mule.transformer.types.DataTypeFactory;
 
-public class DynamicModule {
+public class DynamicModule implements Disposable {
 
     /**
      * Encapsulate logic dealing with event received from a {@link Source}.
@@ -331,7 +332,7 @@ public class DynamicModule {
      * * call {@link Registrar#stop()} for all cached {@link Registrar}
      * * call {@link MuleCOntext#dispose()}
      */
-    public final void close() {
+    public final void dispose() {
         for (final Invoker invoker : this.invokerCache.values()) {
             invoker.dispose();
         }
