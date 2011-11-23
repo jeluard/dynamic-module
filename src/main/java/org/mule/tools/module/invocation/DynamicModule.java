@@ -16,17 +16,24 @@ import org.mule.api.lifecycle.InitialisationException;
 import org.mule.api.processor.MessageProcessor;
 import org.mule.api.registry.RegistrationException;
 import org.mule.api.source.MessageSource;
-import org.mule.tools.module.helper.Converters;
+import org.mule.api.transformer.DataType;
+import org.mule.api.transformer.Transformer;
+import org.mule.api.transformer.TransformerException;
 import org.mule.tools.module.helper.LifeCycles;
 import org.mule.tools.module.helper.MuleContexts;
 import org.mule.tools.module.helper.Parameters;
 import org.mule.tools.module.helper.Reflections;
 import org.mule.tools.module.model.Module;
+import org.mule.transformer.types.DataTypeFactory;
 
 public class DynamicModule {
 
     public interface Listener<T> {
 
+        /**
+         * Called every time associated {@link Source} fires an event.
+         * @param event 
+         */
         void onEvent(T event);
 
     }
@@ -140,7 +147,13 @@ public class DynamicModule {
             //Only add default values
             if (parameter.getDefaultValue() != null) {
                 //TODO rely on Mule Transformers
-                allParameters.put(parameter.getName(), Converters.convert(parameter.getType(), parameter.getDefaultValue()));
+                try {
+                    final Transformer transformer = this.context.getRegistry().lookupTransformer(DataType.STRING_DATA_TYPE, DataTypeFactory.create(parameter.getType()));
+                    allParameters.put(parameter.getName(), transformer.transform(parameter.getDefaultValue()));
+                } catch (TransformerException e) {
+                    throw new RuntimeException("Failed to transform <"+parameter.getDefaultValue()+">", e);
+                }
+                
             }
             defaultParameterNames.add(parameter.getName());
         }
