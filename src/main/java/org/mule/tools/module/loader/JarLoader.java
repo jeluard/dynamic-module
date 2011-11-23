@@ -20,6 +20,7 @@ import org.mule.api.ConnectionManager;
 import org.mule.api.annotations.Configurable;
 import org.mule.api.annotations.Processor;
 import org.mule.api.annotations.Source;
+import org.mule.api.annotations.Transformer;
 import org.mule.api.annotations.param.Default;
 import org.mule.api.annotations.param.Optional;
 import org.mule.api.callback.SourceCallback;
@@ -39,6 +40,7 @@ public class JarLoader {
     private static final String CONNECTOR_CLASS_SUFFIX = "Connector";
     private static final String MESSAGE_PROCESSOR_CLASS_SUFFIX = "MessageProcessor";
     private static final String MESSAGE_SOURCE_CLASS_SUFFIX = "MessageSource";
+    private static final String TRANSFORMER_CLASS_SUFFIX = "Transformer";
     private static final String CONNECTION_MANAGER_CLASS_SUFFIX = "ConnectionManager";
     private static final String CAPABILITIES_ADAPTER_CLASS_SUFFIX = "CapabilitiesAdapter";
     private static final String CONFIG_PACKAGE_PATH = "config.";
@@ -117,13 +119,18 @@ public class JarLoader {
     }
 
     protected final Class<?> findMessageProcessorClass(final Class<?> moduleClass, final String processorName, final ClassLoader classLoader) {
-        final String messageProcessorName = moduleClass.getPackage().getName()+"."+JarLoader.CONFIG_PACKAGE_PATH+StringUtils.capitalize(processorName)+JarLoader.MESSAGE_PROCESSOR_CLASS_SUFFIX;
-        return loadClass(classLoader, messageProcessorName);
+        final String messageProcessorClassName = moduleClass.getPackage().getName()+"."+JarLoader.CONFIG_PACKAGE_PATH+StringUtils.capitalize(processorName)+JarLoader.MESSAGE_PROCESSOR_CLASS_SUFFIX;
+        return loadClass(classLoader, messageProcessorClassName);
     }
 
     protected final Class<?> findMessageSourceClass(final Class<?> moduleClass, final String sourceName, final ClassLoader classLoader) {
         final String messageSourceName = moduleClass.getPackage().getName()+"."+JarLoader.CONFIG_PACKAGE_PATH+StringUtils.capitalize(sourceName)+JarLoader.MESSAGE_SOURCE_CLASS_SUFFIX;
         return loadClass(classLoader, messageSourceName);
+    }
+
+    protected final Class<?> findTransformerClass(final Class<?> moduleClass, final String transformerName, final ClassLoader classLoader) {
+        final String transformerClassName = moduleClass.getPackage().getName()+"."+JarLoader.CONFIG_PACKAGE_PATH+StringUtils.capitalize(transformerName)+JarLoader.TRANSFORMER_CLASS_SUFFIX;
+        return loadClass(classLoader, transformerClassName);
     }
 
     protected final List<Class<?>> findModuleSubClasses(final Class<?> moduleClass, final List<String> allFileNames, final URLClassLoader classLoader) {
@@ -212,7 +219,7 @@ public class JarLoader {
         if (capabilities == null) {
             throw new IllegalArgumentException("Failed to instantiate Capabilities class <"+capabilitiesClass.getCanonicalName()+">");
         }
-        return new Module(extractName(annotation), extractMinMuleVersion(annotation), module, capabilities, listParameters(moduleClass), listProcessors(moduleClass, classLoader), listSources(moduleClass, classLoader), extractConnectionManager(moduleClass, capabilities, classLoader), classLoader);
+        return new Module(extractName(annotation), extractMinMuleVersion(annotation), module, capabilities, listParameters(moduleClass), listProcessors(moduleClass, classLoader), listSources(moduleClass, classLoader), listTransformers(moduleClass, classLoader), extractConnectionManager(moduleClass, capabilities, classLoader), classLoader);
     }
     
     protected final List<Module.Parameter> listParameters(final Class<?> moduleClass) {
@@ -347,6 +354,25 @@ public class JarLoader {
             }
         }
         return sources;
+    }
+
+    protected final List<Module.Transformer> listTransformers(final Class<?> moduleClass, final ClassLoader classLoader) {
+        final List<Module.Transformer> transformers = new LinkedList<Module.Transformer>();
+        for (final Method method : moduleClass.getMethods()) {
+            final Transformer annotation = method.getAnnotation(Transformer.class);
+            if (annotation != null) {
+                final Class<?> transformerClass = findTransformerClass(moduleClass, method.getName(), classLoader);
+                if (transformerClass == null) {
+                    throw new IllegalArgumentException("Failed to find Transformer class for processor <"+method.getName()+">");
+                }
+                final org.mule.api.transformer.Transformer transformer = newInstance(transformerClass);
+                if (transformer == null) {
+                    throw new IllegalArgumentException("Failed to instantiate Transformer class <"+transformerClass.getCanonicalName()+">");
+                }
+                transformers.add(new Module.Transformer(transformer, annotation.priorityWeighting(), annotation.sourceTypes()));
+            }
+        }
+        return transformers;
     }
 
 }

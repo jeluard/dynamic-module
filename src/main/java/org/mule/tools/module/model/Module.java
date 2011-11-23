@@ -1,6 +1,7 @@
 package org.mule.tools.module.model;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -165,6 +166,47 @@ public class Module {
 
     }
 
+    /**
+     * @see {@link org.mule.api.annotations.Transformer}
+     */
+    public static class Transformer {
+
+        private final org.mule.api.transformer.Transformer transformer;
+        private final int priorityWeighting;
+        private final Class<?>[] sourceTypes;
+
+        public Transformer(final org.mule.api.transformer.Transformer transformer, final int priorityWeighting, final Class<?>[] sourceTypes) {
+            if (transformer == null) {
+                throw new IllegalArgumentException("null transformer");
+            }
+            if (sourceTypes == null) {
+                throw new IllegalArgumentException("null sourceTypes");
+            }
+
+            this.transformer = transformer;
+            this.priorityWeighting = priorityWeighting;
+            this.sourceTypes = sourceTypes;
+        }
+
+        public final org.mule.api.transformer.Transformer getTransformer() {
+            return this.transformer;
+        }
+
+        public final int getPriorityWeighting() {
+            return this.priorityWeighting;
+        }
+
+        public final Class<?>[] getSourceTypes() {
+            return this.sourceTypes;
+        }
+
+        @Override
+        public String toString() {
+            return "type: <"+this.transformer.getClass().getName()+"> priorityWeighting: <"+this.priorityWeighting+"> sourceTypes: <"+Arrays.toString(this.sourceTypes) +">";
+        }
+
+    }
+
     private final String name;
     private final String minMuleVersion;
     private final Object module;
@@ -172,10 +214,11 @@ public class Module {
     private final List<Parameter> parameters;
     private final List<Processor> processors;
     private final List<Source> sources;
+    private final List<Transformer> transformers;
     private final ClassLoader classLoader;
     private final ConnectionManager<?, ?> connectionManager;
 
-    public Module(final String name, final String minMuleVersion, final Object module, final Capabilities capabilities, final List<Parameter> parameters, final List<Processor> processors, final List<Source> sources, final ConnectionManager<?, ?> connectionManager, final ClassLoader classLoader) {
+    public Module(final String name, final String minMuleVersion, final Object module, final Capabilities capabilities, final List<Parameter> parameters, final List<Processor> processors, final List<Source> sources, final List<Transformer> transformers, final ConnectionManager<?, ?> connectionManager, final ClassLoader classLoader) {
         if (name == null) {
             throw new IllegalArgumentException("null name");
         }
@@ -197,11 +240,11 @@ public class Module {
         if (sources == null) {
             throw new IllegalArgumentException("null sources");
         }
+        if (transformers == null) {
+            throw new IllegalArgumentException("null transformers");
+        }
         if (classLoader == null) {
             throw new IllegalArgumentException("null classLoader");
-        }
-        if (connectionManager == null) {
-            throw new IllegalArgumentException("null connectionManager");
         }
 
         this.name = name;
@@ -210,11 +253,14 @@ public class Module {
         this.capabilities = capabilities;
         this.parameters = Collections.unmodifiableList(new ArrayList<Parameter>(parameters));
         this.processors = Collections.unmodifiableList(new ArrayList<Processor>(processors));
-        this.sources = sources;
+        this.sources = Collections.unmodifiableList(new ArrayList<Source>(sources));
+        this.transformers = Collections.unmodifiableList(new ArrayList<Transformer>(transformers));
         this.classLoader = classLoader;
         this.connectionManager = connectionManager;
 
-        ensureConnectionManagementCapability();
+        if (connectionManager != null) {
+            ensureConnectionManagementCapability();
+        }
     }
 
     protected final void ensureCapability(final Capability capability) {
@@ -260,6 +306,10 @@ public class Module {
 
     public final List<Source> getSources() {
         return this.sources;
+    }
+
+    public final List<Transformer> getTransformers() {
+        return this.transformers;
     }
 
     public final ConnectionManager<?, ?> getConnectionManager() {
