@@ -2,6 +2,7 @@ package org.mule.tools.module.helper;
 
 import java.lang.reflect.Field;
 
+import java.util.Map;
 import org.mule.util.StringUtils;
 
 /**
@@ -32,8 +33,8 @@ public final class Reflections {
 
     /**
      * Get value of property for specified object.
-     * @param propertyName
      * @param object
+     * @param propertyName
      */
     public static Object get(final Object object, final String propertyName) {
         try {
@@ -58,8 +59,8 @@ public final class Reflections {
 
     /**
      * Sets property to value for specified object.
-     * @param propertyName
      * @param object
+     * @param propertyName
      * @param value 
      */
     public static void set(final Object object, final String propertyName, final Object value) {
@@ -71,6 +72,22 @@ public final class Reflections {
                 field.set(object, value);
             } catch(IllegalAccessException ee) {
                 throw new RuntimeException(ee);
+            }
+        }
+    }
+
+    /**
+     * Sets parameters for specified object.
+     * @param object
+     * @param parameters
+     */
+    public static void set(final Object object, final Map<String, Object> parameters) {
+        for (final Map.Entry<String, Object> entry : parameters.entrySet()) {
+            final String parameterName = entry.getKey();
+            try {
+                Reflections.invoke(object, Reflections.setterMethodName(parameterName), entry.getValue(), Object.class);
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to set parameter <"+parameterName+">", e);
             }
         }
     }
@@ -97,8 +114,8 @@ public final class Reflections {
 
     /**
      * @param <T>
-     * @param method
      * @param object
+     * @param method
      * @param argument
      * @return result of dynamic invocation of `method` on `object` with `argument`.
      * @see #asTypes(java.lang.Object[]) for inferred type from arguments
@@ -118,8 +135,8 @@ public final class Reflections {
 
     /**
      * @param <T>
-     * @param method
      * @param object
+     * @param method
      * @param argument
      * @param argumentType 
      * @return result of dynamic invocation of `method` on `object` with `argument`.
@@ -134,8 +151,8 @@ public final class Reflections {
 
     /**
      * @param <T>
-     * @param method
      * @param object
+     * @param method
      * @return result of dynamic invocation of `method` on `object` with no argument.
      */
     public static <T> T invoke(final Object object, final String method) {

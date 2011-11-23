@@ -19,9 +19,12 @@ import org.mule.api.Capability;
 import org.mule.api.ConnectionManager;
 import org.mule.api.annotations.Configurable;
 import org.mule.api.annotations.Processor;
+import org.mule.api.annotations.Source;
 import org.mule.api.annotations.param.Default;
 import org.mule.api.annotations.param.Optional;
+import org.mule.api.callback.SourceCallback;
 import org.mule.api.processor.MessageProcessor;
+import org.mule.api.source.MessageSource;
 import org.mule.tools.module.helper.Classes;
 import org.mule.tools.module.helper.Jars;
 import org.mule.tools.module.helper.Reflections;
@@ -35,6 +38,7 @@ public class JarLoader {
     private static final String MODULE_CLASS_SUFFIX = "Module";
     private static final String CONNECTOR_CLASS_SUFFIX = "Connector";
     private static final String MESSAGE_PROCESSOR_CLASS_SUFFIX = "MessageProcessor";
+    private static final String MESSAGE_SOURCE_CLASS_SUFFIX = "MessageSource";
     private static final String CONNECTION_MANAGER_CLASS_SUFFIX = "ConnectionManager";
     private static final String CAPABILITIES_ADAPTER_CLASS_SUFFIX = "CapabilitiesAdapter";
     private static final String CONFIG_PACKAGE_PATH = "config.";
@@ -115,6 +119,11 @@ public class JarLoader {
     protected final Class<?> findMessageProcessorClass(final Class<?> moduleClass, final String processorName, final ClassLoader classLoader) {
         final String messageProcessorName = moduleClass.getPackage().getName()+"."+JarLoader.CONFIG_PACKAGE_PATH+StringUtils.capitalize(processorName)+JarLoader.MESSAGE_PROCESSOR_CLASS_SUFFIX;
         return loadClass(classLoader, messageProcessorName);
+    }
+
+    protected final Class<?> findMessageSourceClass(final Class<?> moduleClass, final String sourceName, final ClassLoader classLoader) {
+        final String messageSourceName = moduleClass.getPackage().getName()+"."+JarLoader.CONFIG_PACKAGE_PATH+StringUtils.capitalize(sourceName)+JarLoader.MESSAGE_SOURCE_CLASS_SUFFIX;
+        return loadClass(classLoader, messageSourceName);
     }
 
     protected final List<Class<?>> findModuleSubClasses(final Class<?> moduleClass, final List<String> allFileNames, final URLClassLoader classLoader) {
@@ -203,7 +212,7 @@ public class JarLoader {
         if (capabilities == null) {
             throw new IllegalArgumentException("Failed to instantiate Capabilities class <"+capabilitiesClass.getCanonicalName()+">");
         }
-        return new Module(extractName(annotation), extractMinMuleVersion(annotation), module, capabilities, listParameters(moduleClass), listProcessors(moduleClass, classLoader), extractConnectionManager(moduleClass, capabilities, classLoader), classLoader);
+        return new Module(extractName(annotation), extractMinMuleVersion(annotation), module, capabilities, listParameters(moduleClass), listProcessors(moduleClass, classLoader), listSources(moduleClass, classLoader), extractConnectionManager(moduleClass, capabilities, classLoader), classLoader);
     }
     
     protected final List<Module.Parameter> listParameters(final Class<?> moduleClass) {
@@ -218,14 +227,11 @@ public class JarLoader {
         return parameters;
     }
 
-    protected final String extractProcessorName(final Processor annotation, final Method method) {
-        if (!"".equals(annotation.name())) {
-            return annotation.name();
-        }
-
+    protected final String methodNameToDashBased(final Method method) {
+        final String methodName = method.getName();
         final StringBuilder builder = new StringBuilder();
-        for (int i = 0; i < method.getName().length(); i++) {
-            final char character = method.getName().charAt(i);
+        for (int i = 0; i < methodName.length(); i++) {
+            final char character = methodName.charAt(i);
             if (Character.isUpperCase(character)) {
                 builder.append("-").append(Character.toLowerCase(character));
             } else {
@@ -235,9 +241,25 @@ public class JarLoader {
         return builder.toString();
     }
 
-    protected final String[] extractMethodParameterNames(final Method method, final MessageProcessor messageProcessor) {
+    protected final String extractProcessorName(final Processor annotation, final Method method) {
+        if (!"".equals(annotation.name())) {
+            return annotation.name();
+        }
+
+        return methodNameToDashBased(method);
+    }
+
+    protected final String extractSourceName(final Source annotation, final Method method) {
+        if (!"".equals(annotation.name())) {
+            return annotation.name();
+        }
+
+        return methodNameToDashBased(method);
+    }
+
+    protected final String[] extractMethodParameterNames(final Class<?> generatedClass) {
         final List<String> parameterNames = new LinkedList<String>();
-        for (final Field field : messageProcessor.getClass().getDeclaredFields()) {
+        for (final Field field : generatedClass.getDeclaredFields()) {
             final String fieldName = field.getName();
             if (!(fieldName.startsWith(JarLoader.PARAMETER_TYPE_FIELD_PREFIX) && fieldName.endsWith(JarLoader.PARAMETER_TYPE_FIELD_SUFFIX))) {
                 continue;
@@ -249,10 +271,25 @@ public class JarLoader {
         return parameterNames.toArray(new String[parameterNames.size()]);
     }
 
-    protected final List<Module.Parameter> listProcessorParameters(final Class<?> moduleClass, final Method method, final MessageProcessor messageProcessor) {
+    protected final Class<?>[] extractMethodParameterTypes(final Method method) {
+        final List<Class<?>> parameterTypes = new LinkedList<Class<?>>();
+        for (final Class<?> type : method.getParameterTypes()) {
+            //SourceCallback is not a user parameter.
+            if (SourceCallback.class.equals(type)) {
+                continue;
+            }
+
+            parameterTypes.add(type);
+        }
+        return parameterTypes.toArray(new Class<?>[parameterTypes.size()]);
+    }
+
+    protected final List<Module.Parameter> listMethodParameters(final Class<?> moduleClass, final Method method, final Class<?> generatedClass) {
         final List<Module.Parameter> parameters = new LinkedList<Module.Parameter>();
-        final String[] parameterNames = extractMethodParameterNames(method, messageProcessor);
-        final Class<?>[] parameterTypes = method.getParameterTypes();
+        //Rely on the fact that parameters are added first in generated MessageProcessor/MessageSource.
+        //TODO Pretty fragile. Replace with stronger alternative.
+        final String[] parameterNames = extractMethodParameterNames(generatedClass);
+        final Class<?>[] parameterTypes = extractMethodParameterTypes(method);
         final Annotation[][] parameterAnnotations = method.getParameterAnnotations();
         for (int i = 0; i < parameterTypes.length; i++) {
             final String name = parameterNames[i];
@@ -287,10 +324,29 @@ public class JarLoader {
                 if (messageProcessor == null) {
                     throw new IllegalArgumentException("Failed to instantiate MessageProcessor class <"+messageProcessorClass.getCanonicalName()+">");
                 }
-                processors.add(new Module.Processor(extractProcessorName(annotation, method), messageProcessor, listProcessorParameters(moduleClass, method, messageProcessor), annotation.intercepting()));
+                processors.add(new Module.Processor(extractProcessorName(annotation, method), messageProcessor, listMethodParameters(moduleClass, method, messageProcessorClass), annotation.intercepting()));
             }
         }
         return processors;
+    }
+
+    protected final List<Module.Source> listSources(final Class<?> moduleClass, final ClassLoader classLoader) {
+        final List<Module.Source> sources = new LinkedList<Module.Source>();
+        for (final Method method : moduleClass.getMethods()) {
+            final Source annotation = method.getAnnotation(Source.class);
+            if (annotation != null) {
+                final Class<?> messageSourceClass = findMessageSourceClass(moduleClass, method.getName(), classLoader);
+                if (messageSourceClass == null) {
+                    throw new IllegalArgumentException("Failed to find MessageSource class for processor <"+method.getName()+">");
+                }
+                final MessageSource messageSource = newInstance(messageSourceClass);
+                if (messageSource == null) {
+                    throw new IllegalArgumentException("Failed to instantiate MessageSource class <"+messageSourceClass.getCanonicalName()+">");
+                }
+                sources.add(new Module.Source(extractSourceName(annotation, method), messageSource, listMethodParameters(moduleClass, method, messageSourceClass)));
+            }
+        }
+        return sources;
     }
 
 }

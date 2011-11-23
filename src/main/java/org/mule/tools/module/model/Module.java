@@ -8,8 +8,10 @@ import org.mule.api.Capabilities;
 import org.mule.api.Capability;
 import org.mule.api.ConnectionManager;
 import org.mule.api.processor.MessageProcessor;
+import org.mule.api.source.MessageSource;
 import org.mule.tools.module.helper.ConnectionManagers;
 
+//TODO Add support for OAuth1 and OAuth2
 public class Module {
 
     /**
@@ -122,17 +124,58 @@ public class Module {
 
     }
 
+    public static class Source {
+
+        private final String name;
+        private final MessageSource messageSource;
+        private final List<Parameter> parameters;
+
+        public Source(final String name, final MessageSource messageSource, final List<Parameter> parameters) {
+            if (name == null) {
+                throw new IllegalArgumentException("null name");
+            }
+            if (messageSource == null) {
+                throw new IllegalArgumentException("null messageSource");
+            }
+            if (parameters == null) {
+                throw new IllegalArgumentException("null parameters");
+            }
+
+            this.name = name;
+            this.messageSource = messageSource;
+            this.parameters = parameters;
+        }
+
+        public final String getName() {
+            return this.name;
+        }
+
+        public final MessageSource getMessageSource() {
+            return this.messageSource;
+        }
+
+        public final List<Parameter> getParameters() {
+            return this.parameters;
+        }
+
+        @Override
+        public String toString() {
+            return "name: <"+this.name+"> type: <"+this.messageSource.getClass().getName()+"> parameters: <"+this.parameters+">";
+        }
+
+    }
+
     private final String name;
     private final String minMuleVersion;
     private final Object module;
     private final Capabilities capabilities;
     private final List<Parameter> parameters;
     private final List<Processor> processors;
+    private final List<Source> sources;
     private final ClassLoader classLoader;
     private final ConnectionManager<?, ?> connectionManager;
-    //TODO extract MessageSource
 
-    public Module(final String name, final String minMuleVersion, final Object module, final Capabilities capabilities, final List<Parameter> parameters, final List<Processor> processors, final ConnectionManager<?, ?> connectionManager, final ClassLoader classLoader) {
+    public Module(final String name, final String minMuleVersion, final Object module, final Capabilities capabilities, final List<Parameter> parameters, final List<Processor> processors, final List<Source> sources, final ConnectionManager<?, ?> connectionManager, final ClassLoader classLoader) {
         if (name == null) {
             throw new IllegalArgumentException("null name");
         }
@@ -151,6 +194,9 @@ public class Module {
         if (processors == null) {
             throw new IllegalArgumentException("null processors");
         }
+        if (sources == null) {
+            throw new IllegalArgumentException("null sources");
+        }
         if (classLoader == null) {
             throw new IllegalArgumentException("null classLoader");
         }
@@ -164,6 +210,7 @@ public class Module {
         this.capabilities = capabilities;
         this.parameters = Collections.unmodifiableList(new ArrayList<Parameter>(parameters));
         this.processors = Collections.unmodifiableList(new ArrayList<Processor>(processors));
+        this.sources = sources;
         this.classLoader = classLoader;
         this.connectionManager = connectionManager;
 
@@ -209,6 +256,10 @@ public class Module {
 
     public final List<Processor> getProcessors() {
         return this.processors;
+    }
+
+    public final List<Source> getSources() {
+        return this.sources;
     }
 
     public final ConnectionManager<?, ?> getConnectionManager() {
