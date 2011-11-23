@@ -15,7 +15,7 @@ final List<List<NexusArtifact>> groups = browser.listArtifacts();
 final List<String> artifactIds = browser.listArtifactIds();
 
 //Or all versions of a specific module
-final List<String> versions = browser.listArtifactVersions("mule-module-sfdc");
+final List<String> versions = browser.listArtifactVersions("artifactId");
 ```
 
 A module Jar plus all its dependencies can retrieved/locally installed using maven coordinates. Under the hood [MuleForge](http://www.mulesoft.org/muleforge) will be accessed, dependencies resolved, artifacts downloaded and locally installed.
@@ -33,38 +33,32 @@ final MavenRepositoryDiscoverer discoverer = new MavenRepositoryDiscoverer(local
 final List<URL> urls = discoverer.listDependencies("artifactId", "version");
 ```
 
-# Invocation
+# Meta model generation
 
-A MessageProcessor can be simply invoked using an Invoker.
-
-```java
-final MessageProcessor messageProcessor = ...;
-final Object muleModule = ...;
-final Map<String, Object> parameterValues = ...;
-final Map<String, Object> methodParameterValues = ...;
-        
-final Invoker invoker = new Invoker(messageProcessor, module, parameterValues, 5);
-invoker.initialise();
-final Object result = invoker.invoke(methodParameterValues);
-invoker.close();
-```
-
-It might be more convenient to load all Processors dynamically once and executed them using the same `name` you would use in your xml application.
-A ModuleInvoker will handle Invoker lifecycle for you.
+A Module model can be generated from your module Jars. All Module meta data are then accessible.
 
 ```java
 final Module module = new JarLoader().load(urls);
-//Setup this module if needed.
-
-final ModuleInvoker moduleInvoker = new ModuleInvoker(module, parameterValues);
-moduleInvoker.invoke("name", methodParameterValues);
-moduleInvoker.close();
+final List<Module.Parameter> parameters = module.getParameters();
+final List<Module.Processor> processors = module.getProcessors();
+final List<Module.Source> sources = module.getSources();
+final List<Module.Transformer> transformers = module.getTransformers();
 ```
 
-Module description can be generated from your module Jar.
+# Dynamic manipulation
+
+Once you have this model you can use a DynamicModule to dynamically invoke [Processor](http://www.mulesoft.org/documentation/display/DEVKIT/Creating+Message+Processors) and subscribe to [Source](http://www.mulesoft.org/documentation/display/DEVKIT/Creating+Message+Sources).
 
 ```java
-final Module module = new JarLoader().load(urls);
+final DynamicModule dynamicModule = new DynamicModule(module, parameterValues);
+dynamicModule.invoke("name", methodParameters);
+dynamicModule.subscribe("source", sourceParameters, new Listener<T>() {
+  public void onEvent(T event) {
+    System.out.printl("Received: "+event);
+  }
+});
+dynamicModule.unsubscribe("source");
+dynamicModule.close();
 ```
 
 # Example
@@ -79,19 +73,19 @@ module.setUsername("username");
 module.setPassword("password");
 module.setSecurityToken("securityToken");
 
-final Map<String, Object> parameterValues = new HashMap<String, Object>();
-parameterValues.put("url", new URL("https://test.salesforce.com/services/Soap/u/23.0"));
+final Map<String, Object> moduleParameters = new HashMap<String, Object>();
+moduleParameters.put("url", new URL("https://test.salesforce.com/services/Soap/u/23.0"));
 
-final ModuleInvoker moduleInvoker = new ModuleInvoker(module, parameterValues);
+final DynamicModule dynamicModule = new DynamicModule(module, moduleParameters);
 
-final Map<String, Object> methodParameterValues = new HashMap<String, Object>();
-methodParameterValues.put("type", "Account");
+final Map<String, Object> methodParameters = new HashMap<String, Object>();
+methodParameters.put("type", "Account");
 final List<Map<String, Object>> objects = new LinkedList<Map<String, Object>>();
 final Map<String, Object> object = new HashMap<String, Object>();
 object.put("Name", "Account name");
 objects.add(object);
-methodParameterValues.put("objects", objects);
+methodParameters.put("objects", objects);
 
-moduleInvoker.invoke("create", methodParameterValues);
-moduleInvoker.close();
+dynamicModule.invoke("create", methodParameters);
+dynamicModule.dispose();
 ```
