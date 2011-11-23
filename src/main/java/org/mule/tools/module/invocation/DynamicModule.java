@@ -28,6 +28,10 @@ import org.mule.transformer.types.DataTypeFactory;
 
 public class DynamicModule {
 
+    /**
+     * Encapsulate logic dealing with event received from a {@link Source}.
+     * @param <T> 
+     */
     public interface Listener<T> {
 
         /**
@@ -146,7 +150,6 @@ public class DynamicModule {
         for (final Module.Parameter parameter : defaultParameters) {
             //Only add default values
             if (parameter.getDefaultValue() != null) {
-                //TODO rely on Mule Transformers
                 try {
                     final Transformer transformer = this.context.getRegistry().lookupTransformer(DataType.STRING_DATA_TYPE, DataTypeFactory.create(parameter.getType()));
                     allParameters.put(parameter.getName(), transformer.transform(parameter.getDefaultValue()));
@@ -247,23 +250,36 @@ public class DynamicModule {
 
     /**
      * @param messageProcessor
-     * @return an {@link Invoker} for {@link MessageProcessor}. Creates it if needed.
+     * @return a cached {@link Invoker} for {@link MessageProcessor}.
      * @throws InitialisationException
      * @throws MuleException
      * @see #createInvoker(org.mule.api.processor.MessageProcessor) 
      */
     protected synchronized final Registrar getRegistrar(final MessageSource messageSource) throws InitialisationException, MuleException {
         final Class<?> key = messageSource.getClass();
-        if (this.registrarCache.containsKey(key)) {
-            return this.registrarCache.get(key);
-        }
+        return this.registrarCache.get(key);
+    }
 
+    /**
+     * @param messageSource
+     * @return a new cached {@link Regsitrar}
+     */
+    protected synchronized final Registrar createAndCacheRegistrar(final MessageSource messageSource) {
+        final Class<?> key = messageSource.getClass();
         final Registrar registrar = new Registrar(this.context, messageSource);
         this.registrarCache.put(key, registrar);
         return registrar;
     }
 
-    public void register(final String sourceName, final Map<String, Object> overriddenParameters, final Listener listener) throws InitialisationException, MuleException {
+    /**
+     * Register {@link Listener} to `sourceName` {@link Source} with `overriddenParameters`.
+     * @param sourceName
+     * @param overriddenParameters
+     * @param listener
+     * @throws InitialisationException
+     * @throws MuleException 
+     */
+    public synchronized final void register(final String sourceName, final Map<String, Object> overriddenParameters, final Listener listener) throws InitialisationException, MuleException {
         if (sourceName == null) {
             throw new IllegalArgumentException("null sourceName");
         }
@@ -279,10 +295,20 @@ public class DynamicModule {
         validateParameterTypeCorrectness(source.getParameters(), overriddenParameters);
         ensureNoMissingParameters(source.getParameters(), overriddenParameters);
 
-        getRegistrar(source.getMessageSource()).start(allParameters(source.getParameters(), overriddenParameters), listener);
+        final Registrar registrar = getRegistrar(source.getMessageSource());
+        if (registrar != null) {
+            throw new IllegalStateException("Source <"+sourceName+"> is already registered");
+        }
+        createAndCacheRegistrar(source.getMessageSource()).start(allParameters(source.getParameters(), overriddenParameters), listener);
     }
 
-    public void unregister(final String sourceName) throws MuleException {
+    /**
+     * Unregister {@link Listener} previously registered to `sourceName` {@link Source}.
+     * @param sourceName
+     * @throws InitialisationException
+     * @throws MuleException 
+     */
+    public final void unregister(final String sourceName) throws MuleException {
         if (sourceName == null) {
             throw new IllegalArgumentException("null sourceName");
         }
@@ -292,11 +318,18 @@ public class DynamicModule {
             throw new IllegalArgumentException("Cannot find a Source named <"+sourceName+">");
         }
 
-        getRegistrar(source.getMessageSource()).stop();
+        final Registrar registrar = getRegistrar(source.getMessageSource());
+        if (registrar == null) {
+            throw new IllegalStateException("Source <"+sourceName+"> is not registered");
+        }
+        registrar.stop();
     }
 
     /**
-     * Calls {@link Invoker#close()} for all cached {@link Invoker}.
+     * Cleanup all internal resources:
+     * * call {@link Invoker#dispose()} for all cached {@link Invoker}
+     * * call {@link Registrar#stop()} for all cached {@link Registrar}
+     * * call {@link MuleCOntext#dispose()}
      */
     public final void close() {
         for (final Invoker invoker : this.invokerCache.values()) {
