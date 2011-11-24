@@ -38,7 +38,12 @@ final List<URL> urls = discoverer.listDependencies("artifactId", "version");
 A Module model can be generated from your module Jars. All Module meta data are then accessible.
 
 ```java
+//From some URLs
 final Module module = new JarLoader().load(urls);
+//Or from well know module class
+final Module module = new Loader().load(module, connectionManager);
+
+//Browse meta data
 final List<Module.Parameter> parameters = module.getParameters();
 final List<Module.Processor> processors = module.getProcessors();
 final List<Module.Source> sources = module.getSources();
