@@ -209,8 +209,7 @@ public class Module {
 
     private final String name;
     private final String minMuleVersion;
-    private final Object module;
-    private final Capabilities capabilities;
+    private final Capabilities module;
     private final List<Parameter> parameters;
     private final List<Processor> processors;
     private final List<Source> sources;
@@ -218,7 +217,7 @@ public class Module {
     private final ClassLoader classLoader;
     private final ConnectionManager<?, ?> connectionManager;
 
-    public Module(final String name, final String minMuleVersion, final Object module, final Capabilities capabilities, final List<Parameter> parameters, final List<Processor> processors, final List<Source> sources, final List<Transformer> transformers, final ConnectionManager<?, ?> connectionManager, final ClassLoader classLoader) {
+    public Module(final String name, final String minMuleVersion, final Capabilities module, final List<Parameter> parameters, final List<Processor> processors, final List<Source> sources, final List<Transformer> transformers, final ConnectionManager<?, ?> connectionManager, final ClassLoader classLoader) {
         if (name == null) {
             throw new IllegalArgumentException("null name");
         }
@@ -227,9 +226,6 @@ public class Module {
         }
         if (module == null) {
             throw new IllegalArgumentException("null modules");
-        }
-        if (capabilities == null) {
-            throw new IllegalArgumentException("null capabilities");
         }
         if (parameters == null) {
             throw new IllegalArgumentException("null parameters");
@@ -250,7 +246,6 @@ public class Module {
         this.name = name;
         this.minMuleVersion = minMuleVersion;
         this.module = module;
-        this.capabilities = capabilities;
         this.parameters = Collections.unmodifiableList(new ArrayList<Parameter>(parameters));
         this.processors = Collections.unmodifiableList(new ArrayList<Processor>(processors));
         this.sources = Collections.unmodifiableList(new ArrayList<Source>(sources));
@@ -264,8 +259,8 @@ public class Module {
     }
 
     protected final void ensureCapability(final Capability capability) {
-        if (!this.capabilities.isCapableOf(capability)) {
-            throw new IllegalArgumentException(Capabilities.class.getSimpleName()+" does not support "+Capability.CONNECTION_MANAGEMENT_CAPABLE);
+        if (!this.module.isCapableOf(capability)) {
+            throw new IllegalArgumentException("Module does not support "+Capability.CONNECTION_MANAGEMENT_CAPABLE);
         }
     }
 
@@ -281,7 +276,7 @@ public class Module {
         return this.minMuleVersion;
     }
 
-    public final Object getModule() {
+    public final Capabilities getModule() {
         return this.module;
     }
 
@@ -290,10 +285,6 @@ public class Module {
             return getConnectionManager();
         }
         return getModule();
-    }
-
-    public final Capabilities getCapabilities() {
-        return this.capabilities;
     }
 
     public final List<Parameter> getParameters() {

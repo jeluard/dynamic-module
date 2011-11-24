@@ -10,6 +10,8 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.mule.api.Capabilities;
+import org.mule.api.Capability;
 import org.mule.api.MuleContext;
 import org.mule.api.MuleException;
 import org.mule.api.lifecycle.Disposable;
@@ -92,17 +94,23 @@ public class DynamicModule implements Disposable {
         }
     }
 
-    private void initialise() throws InitialisationException, RegistrationException {
+    private void initialise() throws InitialisationException, RegistrationException, MuleException {
+        final Capabilities capabilities = this.module.getModule();
+        if (capabilities.isCapableOf(Capability.LIFECYCLE_CAPABLE)) {
+            LifeCycles.initialise(capabilities);
+            LifeCycles.start(capabilities);
+        }
         if (this.module.getConnectionManager() != null) {
             LifeCycles.initialise(this.module.getConnectionManager());
         }
 
         //Apply parameters to the ModuleObject.
+        final Object moduleObject = this.module.getModuleObject();
         for (final Map.Entry<String, Object> entry : this.parameters.entrySet()) {
-            Reflections.set(this.module.getModuleObject(), entry.getKey(), entry.getValue());
+            Reflections.set(moduleObject, entry.getKey(), entry.getValue());
         }
 
-        this.context.getRegistry().registerObject(DynamicModule.MODULE_OBJECT_REGISTRY_KEY, this.module.getModuleObject());
+        this.context.getRegistry().registerObject(DynamicModule.MODULE_OBJECT_REGISTRY_KEY, moduleObject);
     }
 
     protected final void validateParameterTypeCorrectness(final List<Module.Parameter> defaultParameters, final Map<String, Object> overriddenParameters) {
