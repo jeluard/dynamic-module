@@ -56,7 +56,7 @@ public class Loader {
         }
     }
 
-    public final Module load(final Capabilities module, final ConnectionManager<?, ?> connectionManager) throws IOException {
+    public final Module load(final Capabilities module, final ConnectionManager<?, ?> connectionManager) {
         if (module == null) {
             throw new IllegalArgumentException("null module");
         }
