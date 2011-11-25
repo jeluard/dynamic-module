@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Mule Modules playground</title>
+    <script type="text/javascript" src="mule-resource/js/mule.js"></script>
+  </head>
+  <script type="text/javascript">
+    function init() {
+        mule.rpc("/modules", "", function callback(message, error) {
+            console.log(message.data);
+        });
+    }
+
+    function dispose() {
+    }
+  </script>
+
+  <body onload="init()" onunload="dispose()">
+    <h2>Hi Bro</h2>
+  </body>
+</html>

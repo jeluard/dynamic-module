@@ -1,10 +1,11 @@
-package org.mule.tools.module.helper;
+package org.mule.tools.module.browsing;
 
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-
 import java.util.Set;
+
+import org.mule.tools.module.helper.Reflections;
 import org.sonatype.nexus.client.NexusClient;
 import org.sonatype.nexus.client.NexusClientException;
 import org.sonatype.nexus.client.NexusConnectionException;
@@ -74,11 +75,11 @@ public class NexusBrowser {
         }
     }
 
-    public final List<List<NexusArtifact>> listArtifacts() throws Exception {
+    public final List<List<NexusArtifact>> listArtifacts() throws NexusClientException, NexusConnectionException {
         return listArtifacts(NexusBrowser.DEFAULT_GROUPD_ID, NexusBrowser.DEFAULT_PACKAGING);
     }
 
-    public final List<List<NexusArtifact>> listArtifacts(final String groupId, final String packaging)  throws NexusClientException, NexusConnectionException  {
+    public final List<List<NexusArtifact>> listArtifacts(final String groupId, final String packaging) throws NexusClientException, NexusConnectionException  {
         final NexusArtifact template = new NexusArtifact();
         template.setGroupId(groupId);
         template.setPackaging(packaging);

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xmlns:ajax="http://www.mulesoft.org/schema/mule/ajax"
+      xmlns:json="http://www.mulesoft.org/schema/mule/json"
+      xmlns:dynamic="http://www.mulesoft.org/schema/mule/dynamic"
+    xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/3.2/mule.xsd
+        http://www.mulesoft.org/schema/mule/ajax http://www.mulesoft.org/schema/mule/ajax/3.2/mule-ajax.xsd
+        http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/3.2/mule-json.xsd
+        http://www.mulesoft.org/schema/mule/dynamic http://www.mulesoft.org/schema/mule/dynamic/1.0-SNAPSHOT/mule-dynamic.xsd">
+
+    <ajax:connector name="server" serverUrl="http://0.0.0.0:${http.port}/" resourceBase="${app.home}/site" />
+
+    <dynamic:config />
+
+    <flow name="fetch-modules">
+        <ajax:inbound-endpoint channel="/modules"/>
+        <dynamic:list-modules />
+        <json:object-to-json-transformer name="artifactToJson"
+                                            sourceClass="org.sonatype.nexus.rest.model.NexusArtifact[][]" />
+    </flow>
+
+</mule>
