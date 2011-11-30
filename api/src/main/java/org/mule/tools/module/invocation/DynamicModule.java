@@ -51,7 +51,7 @@ public class DynamicModule implements Disposable {
     private final Module module;
     private static final String MODULE_OBJECT_REGISTRY_KEY = "moduleObject";
     private final int retryMax;
-    private static final int DEFAULT_RETRY_MAX = 5;
+    protected static final int DEFAULT_RETRY_MAX = 5;
     private final Map<String, Object> parameters;
     private final Map<Class<?>, Invoker> invokerCache = new HashMap<Class<?>, Invoker>();
     private final Map<Class<?>, Registrar> registrarCache = new HashMap<Class<?>, Registrar>();
@@ -92,6 +92,10 @@ public class DynamicModule implements Disposable {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    protected final MuleContext getMuleContext() {
+        return this.context;
     }
 
     private void initialise() throws InitialisationException, RegistrationException, MuleException {
@@ -241,7 +245,11 @@ public class DynamicModule implements Disposable {
         validateParameterTypeCorrectness(processor.getParameters(), overriddenParameters);
         ensureNoMissingParameters(processor.getParameters(), overriddenParameters);
 
-        return getInvoker(processor.getMessageProcessor()).invoke(allParameters(processor.getParameters(), overriddenParameters));
+        return invoke(processor.getMessageProcessor(), allParameters(processor.getParameters(), overriddenParameters));
+    }
+
+    protected <T> T invoke(final MessageProcessor messageProcessor, final Map<String, Object> parameters) throws InitialisationException, MuleException {
+        return getInvoker(messageProcessor).invoke(parameters);
     }
 
     /**
@@ -340,6 +348,7 @@ public class DynamicModule implements Disposable {
      * * call {@link Registrar#stop()} for all cached {@link Registrar}
      * * call {@link MuleCOntext#dispose()}
      */
+    @Override
     public final void dispose() {
         for (final Invoker invoker : this.invokerCache.values()) {
             invoker.dispose();
