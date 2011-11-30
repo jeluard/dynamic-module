@@ -81,7 +81,7 @@
                     <dependency>
                         <groupId>org.mule.tools.cargo</groupId>
                         <artifactId>container</artifactId>
-                        <version>0.9.10</version>
+                        <version>0.9.11-SNAPSHOT</version>
                     </dependency>
                 </dependencies>
                 <configuration>
@@ -141,6 +141,39 @@
                             <goal>integration-test</goal>
                             <goal>verify</goal>
                         </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>1.0.1</version>
+                <executions>
+                    <execution>
+                        <id>enforce-property</id>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <requireProperty>
+                                    <property>ion.domain</property>
+                                    <message>You must set ion.domain</message>
+                                </requireProperty>
+                                <requireProperty>
+                                    <property>ion.username</property>
+                                    <message>You must set ion.username</message>
+                                </requireProperty>
+                                <requireProperty>
+                                    <property>ion.password</property>
+                                    <message>You must set ion.password</message>
+                                </requireProperty>
+                                <requireProperty>
+                                    <property>ion.workers</property>
+                                    <message>You must set ion.workers</message>
+                                </requireProperty>
+                            </rules>
+                            <fail>true</fail>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
