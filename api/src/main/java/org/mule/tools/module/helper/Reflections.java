@@ -92,7 +92,12 @@ public final class Reflections {
         }
     }
 
-    private static Class<?> asPrimitiveType(final Class<?> type) {
+    /**
+     * @param type
+     * @return primitive equivalent type for specified {@link Class}
+     * @throws IllegalArgumentException ig specified {@link Class} is not {@link Class#isPrimitive() }
+     */
+    public static Class<?> toPrimitive(final Class<?> type) {
         if (type.equals(Integer.class)) {
             return int.class;
         } else if (type.equals(Float.class)) {
@@ -107,9 +112,49 @@ public final class Reflections {
             return byte.class;
         } else if (type.equals(Short.class)) {
             return short.class;
-        } else {
-            return null;
+        } else if (type.equals(Boolean.class)) {
+            return boolean.class;
         }
+        throw new IllegalArgumentException("Unrecognized primitive type <"+type+">");
+    }
+
+    /**
+     * @param type
+     * @return bridge equivalent type for specified {@link Class}
+     * @throws IllegalArgumentException ig specified {@link Class} is not {@link Class#isPrimitive() }
+     */
+    public static Class<?> toType(final Class<?> type) {
+        if (type.equals(int.class)) {
+            return Integer.class;
+        } else if (type.equals(float.class)) {
+            return Float.class;
+        } else if (type.equals(long.class)) {
+            return Long.class;
+        } else if (type.equals(double.class)) {
+            return Double.class;
+        } else if (type.equals(char.class)) {
+            return Character.class;
+        } else if (type.equals(byte.class)) {
+            return Byte.class;
+        } else if (type.equals(short.class)) {
+            return Short.class;
+        } else if (type.equals(boolean.class)) {
+            return Boolean.class;
+        }
+        throw new IllegalArgumentException("Unrecognized primitive type <"+type+">");
+    }
+
+    /**
+     * @param type
+     * @return type representation of provided {@link Class}. Namely convert primitive to their type counterpart.
+     * @see Class#isPrimitive() 
+     * @see #toType(java.lang.Class) 
+     */
+    public static Class<?> asType(final Class<?> type) {
+        if (type.isPrimitive()) {
+            return toType(type);
+        }
+        return type;
     }
 
     /**
@@ -124,12 +169,11 @@ public final class Reflections {
         try {
             return Reflections.invoke(object, method, argument, argument.getClass());
         } catch (RuntimeException e) {
-            final Class<?> primitiveType = asPrimitiveType(argument.getClass());
-            if (primitiveType != null) {
-                return Reflections.invoke(object, method, argument, primitiveType);
+            if (!argument.getClass().isPrimitive()) {
+                throw e;
+            } else {
+                return Reflections.invoke(object, method, argument, Reflections.toPrimitive(argument.getClass()));
             }
-
-            throw e;
         }
     }
 

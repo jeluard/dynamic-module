@@ -127,8 +127,12 @@ public class DynamicModule implements Disposable {
                 continue;
             }
 
-            if (!parameter.getType().isAssignableFrom(entry.getValue().getClass())) {
-                incorrectParameterTypes.add(parameterName);
+            final Class<?> expectedType = Reflections.asType(parameter.getType());
+            final Class<?> type = entry.getValue().getClass();
+            if (!expectedType.isAssignableFrom(type)) {
+                final StringBuilder details = new StringBuilder(parameterName);
+                details.append("(type ").append(type.getCanonicalName()).append(" is not assignable to ").append(expectedType.getCanonicalName()).append(")");
+                incorrectParameterTypes.add(details.toString());
             }
         }
         if (!incorrectParameterTypes.isEmpty()) {
