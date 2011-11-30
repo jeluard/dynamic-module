@@ -66,6 +66,15 @@ dynamicModule.unsubscribe("source");
 dynamicModule.close();
 ```
 
+A specialised DynamicModule, RetryingDynamicModule, provides retry capacities to invocations. You can provide a custom [RetryPolicyTemplate](http://www.mulesoft.org/docs/site/3.2.0/apidocs/org/mule/api/retry/RetryPolicyTemplate.html) that will be used to retry invocation in case of failures.
+Mule ships with a number of default [retry policies](http://www.mulesoft.org/common-retry-policies).
+
+```java
+final RetryPolicyTemplate retryPolicyTemplate = ...;
+final RetryingDynamicModule dynamicModule = new RetryingDynamicModule(module, parameterValues, retryPolicyTemplate);
+dynamicModule.invoke("name", methodParameters);
+```
+
 # Example
 
 ```java
