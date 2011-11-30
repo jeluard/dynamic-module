@@ -1,0 +1,29 @@
+html, body {
+    height: 100%;
+}
+
+body {
+  display: -webkit-box;
+  -webkit-box-orient: horizontal;
+  -webkit-box-pack: center;
+  -webkit-box-align: center;
+ 
+  display: -moz-box;
+  -moz-box-orient: horizontal;
+  -moz-box-pack: center;
+  -moz-box-align: center;
+  
+  display: box;
+  box-orient: horizontal;
+  box-pack: center;
+  box-align: center;
+  width: 100%;
+}
+
+#content {
+  width: 600px;
+  height: 450px;
+  font-size: 14px;
+  border: 1px solid #DDD;
+  border-radius: 3px;
+}

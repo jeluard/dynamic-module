@@ -1,21 +1,60 @@
 <!DOCTYPE html>
-<html>
+<html lang="en-US">
   <head>
+    <meta charset="UTF-8">
     <title>Mule Modules playground</title>
+    <link rel="stylesheet" href="css/default.css">
+    <link rel="stylesheet" href="http://twitter.github.com/bootstrap/1.4.0/bootstrap.min.css">
+    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+    <script type="text/javascript" src="script/bootstrap-breadcrumbs.js"></script>
     <script type="text/javascript" src="mule-resource/js/mule.js"></script>
-  </head>
-  <script type="text/javascript">
-    function init() {
-        mule.rpc("/modules", "", function callback(message, error) {
+    <script type="text/javascript">
+      //var breadcrumbs = $('#breadcrumb').breadcrumb('push');
+      function initialise() {
+        listenClick();
+        displayModules();
+      }
+
+      function listenClick() {
+        document.getElementById('elements').addEventListener('click', function(e) {
+          $('#header').breadcrumb('push');
+          //breadcrumbs.push()
+          $('#header').append("<li><a href='#'>").append(e.target.textContent).append("</a> <span class='divider'>/</span></li>");
+        }, false);
+      }
+
+      function displayModules() {
+        /*mule.rpc("/modules", "", function callback(message, error) {
             console.log(message.data);
-        });
-    }
+        });*/
+        $('#elements').append("<li id='1'>err</li>");
+        $('#elements').append("<li id='2'>err2</li>");
+      }
 
-    function dispose() {
-    }
-  </script>
+      function displayVersions() {
+        $('#elements').append("<li id='1'>1</li>");
+        $('#elements').append("<li id='2'>2</li>");
+      }
 
-  <body onload="init()" onunload="dispose()">
-    <h2>Hi Bro</h2>
+      function displayMetaData() {
+        $('#elements').append("<li id='1'>Param1</li>");
+        $('#elements').append("<li id='2'>Param2</li>");
+        $('#elements').append("<li id='1'>Method1</li>");
+        $('#elements').append("<li id='2'>Method2</li>");
+      }
+    </script>
+  </head>
+  <body onload="initialise()">
+      <div>
+        <ul id="header" class="breadcrumb"></ul>
+          <!--li><a href="#">Home</a> <span class="divider">/</span></li>
+          <li><a href="#">Middle page</a> <span class="divider">/</span></li>
+          <li><a href="#">Another one</a> <span class="divider">/</span></li>
+          <li class="active">You are here</li-->
+        <div id="content">
+          <ul id="elements"></ul>
+        </div>
+      </div>
   </body>
+
 </html>
