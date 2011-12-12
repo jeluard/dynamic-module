@@ -1,6 +1,5 @@
 package org.mule.tools.module.loader;
 
-import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -32,18 +31,19 @@ public class Loader {
     private static final String PARAMETER_TYPE_FIELD_PREFIX = "_";
     private static final String PARAMETER_TYPE_FIELD_SUFFIX = "Type";
 
-    protected final Class<?> findMessageProcessorClass(final Class<?> moduleClass, final String processorName, final ClassLoader classLoader) {
-        final String messageProcessorClassName = moduleClass.getPackage().getName()+"."+StringUtils.capitalize(processorName)+Loader.MESSAGE_PROCESSOR_CLASS_SUFFIX;
+    protected final Class<?> findMessageProcessorClass(final Package modulePackage, final String processorName, final ClassLoader classLoader) {
+        final String messageProcessorClassName = modulePackage.getName()+"."+StringUtils.capitalize(processorName)+Loader.MESSAGE_PROCESSOR_CLASS_SUFFIX;
+        System.out.println(messageProcessorClassName);
         return Classes.loadClass(classLoader, messageProcessorClassName);
     }
 
-    protected final Class<?> findMessageSourceClass(final Class<?> moduleClass, final String sourceName, final ClassLoader classLoader) {
-        final String messageSourceName = moduleClass.getPackage().getName()+"."+StringUtils.capitalize(sourceName)+Loader.MESSAGE_SOURCE_CLASS_SUFFIX;
+    protected final Class<?> findMessageSourceClass(final Package modulePackage, final String sourceName, final ClassLoader classLoader) {
+        final String messageSourceName = modulePackage.getName()+"."+StringUtils.capitalize(sourceName)+Loader.MESSAGE_SOURCE_CLASS_SUFFIX;
         return Classes.loadClass(classLoader, messageSourceName);
     }
 
-    protected final Class<?> findTransformerClass(final Class<?> moduleClass, final String transformerName, final ClassLoader classLoader) {
-        final String transformerClassName = moduleClass.getPackage().getName()+"."+StringUtils.capitalize(transformerName)+Loader.TRANSFORMER_CLASS_SUFFIX;
+    protected final Class<?> findTransformerClass(final Package modulePackage, final String transformerName, final ClassLoader classLoader) {
+        final String transformerClassName = modulePackage.getName()+"."+StringUtils.capitalize(transformerName)+Loader.TRANSFORMER_CLASS_SUFFIX;
         return Classes.loadClass(classLoader, transformerClassName);
     }
 
@@ -57,12 +57,15 @@ public class Loader {
     }
 
     public final Module load(final Capabilities module, final ConnectionManager<?, ?> connectionManager) {
+        return load(module, connectionManager, module.getClass().getPackage(), module.getClass().getClassLoader());
+    }
+
+    public final Module load(final Capabilities module, final ConnectionManager<?, ?> connectionManager, final Package modulePackage, final ClassLoader classLoader) {
         if (module == null) {
             throw new IllegalArgumentException("null module");
         }
 
         final Class<?> moduleClass = module.getClass();
-        final ClassLoader classLoader = moduleClass.getClassLoader();
         final Object annotation = extractAnnotation(moduleClass);
         if (annotation == null) {
             throw new IllegalArgumentException("Failed to find a Module annotation on <"+moduleClass.getCanonicalName()+">");
@@ -71,9 +74,9 @@ public class Loader {
         final String name = extractAnnotationName(annotation);
         final String minMuleVersion = extractMinMuleVersion(annotation);
         final List<Module.Parameter> parameters = listParameters(moduleClass);
-        final List<Module.Processor> processors = listProcessors(moduleClass, classLoader);
-        final List<Module.Source> sources = listSources(moduleClass, classLoader);
-        final List<Module.Transformer> transformers = listTransformers(moduleClass, classLoader);
+        final List<Module.Processor> processors = listProcessors(modulePackage, moduleClass, classLoader);
+        final List<Module.Source> sources = listSources(modulePackage, moduleClass, classLoader);
+        final List<Module.Transformer> transformers = listTransformers(modulePackage, moduleClass, classLoader);
         return new Module(name, minMuleVersion, module, parameters, processors, sources, transformers, connectionManager, classLoader);
     }
 
@@ -165,12 +168,12 @@ public class Loader {
         return parameters;
     }
 
-    protected final List<Module.Processor> listProcessors(final Class<?> moduleClass, final ClassLoader classLoader) {
+    protected final List<Module.Processor> listProcessors(final Package modulePackage, final Class<?> moduleClass, final ClassLoader classLoader) {
         final List<Module.Processor> processors = new LinkedList<Module.Processor>();
         for (final Method method : moduleClass.getMethods()) {
             final Processor annotation = method.getAnnotation(Processor.class);
             if (annotation != null) {
-                final Class<?> messageProcessorClass = findMessageProcessorClass(moduleClass, method.getName(), classLoader);
+                final Class<?> messageProcessorClass = findMessageProcessorClass(modulePackage, method.getName(), classLoader);
                 if (messageProcessorClass == null) {
                     throw new IllegalArgumentException("Failed to find MessageProcessor class for processor <"+method.getName()+">");
                 }
@@ -184,12 +187,12 @@ public class Loader {
         return processors;
     }
 
-    protected final List<Module.Source> listSources(final Class<?> moduleClass, final ClassLoader classLoader) {
+    protected final List<Module.Source> listSources(final Package modulePackage, final Class<?> moduleClass, final ClassLoader classLoader) {
         final List<Module.Source> sources = new LinkedList<Module.Source>();
         for (final Method method : moduleClass.getMethods()) {
             final Source annotation = method.getAnnotation(Source.class);
             if (annotation != null) {
-                final Class<?> messageSourceClass = findMessageSourceClass(moduleClass, method.getName(), classLoader);
+                final Class<?> messageSourceClass = findMessageSourceClass(modulePackage, method.getName(), classLoader);
                 if (messageSourceClass == null) {
                     throw new IllegalArgumentException("Failed to find MessageSource class for processor <"+method.getName()+">");
                 }
@@ -203,12 +206,12 @@ public class Loader {
         return sources;
     }
 
-    protected final List<Module.Transformer> listTransformers(final Class<?> moduleClass, final ClassLoader classLoader) {
+    protected final List<Module.Transformer> listTransformers(final Package modulePackage, final Class<?> moduleClass, final ClassLoader classLoader) {
         final List<Module.Transformer> transformers = new LinkedList<Module.Transformer>();
         for (final Method method : moduleClass.getMethods()) {
             final Transformer annotation = method.getAnnotation(Transformer.class);
             if (annotation != null) {
-                final Class<?> transformerClass = findTransformerClass(moduleClass, method.getName(), classLoader);
+                final Class<?> transformerClass = findTransformerClass(modulePackage, method.getName(), classLoader);
                 if (transformerClass == null) {
                     throw new IllegalArgumentException("Failed to find Transformer class for processor <"+method.getName()+">");
                 }
