@@ -239,9 +239,6 @@ public class Module {
         if (transformers == null) {
             throw new IllegalArgumentException("null transformers");
         }
-        if (classLoader == null) {
-            throw new IllegalArgumentException("null classLoader");
-        }
 
         this.name = name;
         this.minMuleVersion = minMuleVersion;

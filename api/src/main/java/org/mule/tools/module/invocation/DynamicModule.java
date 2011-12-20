@@ -171,7 +171,7 @@ public class DynamicModule implements Disposable {
                     final Transformer transformer = this.context.getRegistry().lookupTransformer(DataType.STRING_DATA_TYPE, DataTypeFactory.create(parameter.getType()));
                     allParameters.put(parameter.getName(), transformer.transform(parameter.getDefaultValue()));
                 } catch (TransformerException e) {
-                    throw new RuntimeException("Failed to transform <"+parameter.getDefaultValue()+">", e);
+                    throw new RuntimeException("Failed to transform <"+parameter.getDefaultValue()+"> to <"+parameter.getType()+"> for parameter <"+parameter.getName()+">", e);
                 }
                 
             }
