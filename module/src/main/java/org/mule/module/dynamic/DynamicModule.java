@@ -17,15 +17,25 @@
 
 package org.mule.module.dynamic;
 
+import java.io.File;
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 
 import org.mule.api.annotations.Module;
 import org.mule.api.annotations.Processor;
 import org.mule.tools.module.browsing.NexusBrowser;
-
+import org.mule.tools.module.discovery.MavenRepositoryDiscoverer;
+import org.mule.tools.module.loader.JarLoader;
+import org.sonatype.aether.collection.DependencyCollectionException;
+import org.sonatype.aether.resolution.DependencyResolutionException;
 import org.sonatype.nexus.client.NexusClientException;
 import org.sonatype.nexus.client.NexusConnectionException;
-import org.sonatype.nexus.rest.model.NexusArtifact;
 
 /**
  * Dynamic Module
@@ -40,13 +50,56 @@ public class DynamicModule {
     /**
      * List all MuleForge modules.
      *
-     * {@sample.xml ../../../doc/Dynamic-module.xml.sample dynamic:list-modules}
+     * {@sample.xml ../../../doc/Dynamic-module.xml.sample dynamic:list-ids}
      *
      * @return ee
      */
     @Processor
-    public List<List<NexusArtifact>> listModules() throws NexusClientException, NexusConnectionException {
-        return this.browser.listArtifacts();
+    public Set<String> listIds() throws NexusClientException, NexusConnectionException {
+        return new TreeSet<String>(this.browser.listArtifactIds());
+    }
+
+    /**
+     * List all MuleForge modules.
+     *
+     * {@sample.xml ../../../doc/Dynamic-module.xml.sample dynamic:list-versions}
+     *
+     * @param id Module id
+     * @param includeSnapshots true to include snapshot versions
+     * @return ee
+     */
+    @Processor
+    public Set<String> listVersions(final String id, final boolean includeSnapshots) throws NexusClientException, NexusConnectionException {
+        final Set<String> allVersions = new TreeSet<String>(this.browser.listArtifactVersions(id));
+        if (!includeSnapshots) {
+            for (final Iterator<String> it = allVersions.iterator(); it.hasNext();) {
+                final String version = it.next();
+                if (version.endsWith("SNAPSHOT")) {
+                    it.remove();
+                }
+            }
+        }
+        return allVersions;
+    }
+
+    /**
+     * List all MuleForge modules.
+     *
+     * {@sample.xml ../../../doc/Dynamic-module.xml.sample dynamic:list-versions}
+     *
+     * @param id Module id
+     * @param version Module version
+     * @return ee
+     */
+    @Processor
+    public org.mule.tools.module.model.Module module(final String id, final String version) throws NexusClientException, NexusConnectionException, DependencyCollectionException, DependencyResolutionException, MalformedURLException, IOException {
+        try {
+            final MavenRepositoryDiscoverer discoverer = new MavenRepositoryDiscoverer(new File("."), MavenRepositoryDiscoverer.defaultMuleForgeRepositories());
+            final List<URL> urls = discoverer.listDependencies(id, version);
+            return new JarLoader().load(urls);
+        } catch (Exception e) {
+            return new org.mule.tools.module.model.Module("", "", e.getMessage(), Collections.<org.mule.tools.module.model.Module.Parameter>emptyList(), Collections.<org.mule.tools.module.model.Module.Processor>emptyList(), Collections.<org.mule.tools.module.model.Module.Source>emptyList(), Collections.<org.mule.tools.module.model.Module.Transformer>emptyList(), null);
+        }
     }
 
 }

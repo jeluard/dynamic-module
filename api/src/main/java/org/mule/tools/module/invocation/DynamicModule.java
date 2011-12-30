@@ -7,11 +7,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
-import org.mule.api.Capabilities;
-import org.mule.api.Capability;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.mule.api.MuleContext;
 import org.mule.api.MuleException;
 import org.mule.api.lifecycle.Disposable;
@@ -23,6 +21,7 @@ import org.mule.api.transformer.DataType;
 import org.mule.api.transformer.Transformer;
 import org.mule.api.transformer.TransformerException;
 import org.mule.tools.module.helper.LifeCycles;
+import org.mule.tools.module.helper.Modules;
 import org.mule.tools.module.helper.MuleContexts;
 import org.mule.tools.module.helper.Parameters;
 import org.mule.tools.module.helper.Reflections;
@@ -45,7 +44,7 @@ public class DynamicModule implements Disposable {
 
     }
 
-    private static final Logger LOGGER = Logger.getLogger(DynamicModule.class.getPackage().getName());
+    private static final Log LOGGER = LogFactory.getLog(DynamicModule.class.getPackage().getName());
 
     private final MuleContext context;
     private final Module module;
@@ -99,10 +98,10 @@ public class DynamicModule implements Disposable {
     }
 
     private void initialise() throws InitialisationException, RegistrationException, MuleException {
-        final Capabilities capabilities = this.module.getModule();
-        if (capabilities.isCapableOf(Capability.LIFECYCLE_CAPABLE)) {
-            LifeCycles.initialise(capabilities);
-            LifeCycles.start(capabilities);
+ /*TODO       final Object module = this.module.getModule();
+        if (Modules.isLifeCycleCapable(module)) {
+            LifeCycles.initialise(module);
+            LifeCycles.start(module);
         }
         if (this.module.getConnectionManager() != null) {
             LifeCycles.initialise(this.module.getConnectionManager());
@@ -115,6 +114,7 @@ public class DynamicModule implements Disposable {
         }
 
         this.context.getRegistry().registerObject(DynamicModule.MODULE_OBJECT_REGISTRY_KEY, moduleObject);
+         */
     }
 
     protected final void validateParameterTypeCorrectness(final List<Module.Parameter> defaultParameters, final Map<String, Object> overriddenParameters) {
@@ -181,8 +181,8 @@ public class DynamicModule implements Disposable {
             //Only add existing parameters
             final String parameterName = entry.getKey();
             if (!defaultParameterNames.contains(parameterName)) {
-                if (DynamicModule.LOGGER.isLoggable(Level.WARNING)) {
-                    DynamicModule.LOGGER.log(Level.WARNING, "Value has been provided for unknown parameter <{0}>; it will be ignored", parameterName);
+                if (DynamicModule.LOGGER.isWarnEnabled()) {
+                    DynamicModule.LOGGER.warn("Value has been provided for unknown parameter <"+parameterName+">; it will be ignored");
                 }
 
                 continue;
@@ -249,7 +249,7 @@ public class DynamicModule implements Disposable {
         validateParameterTypeCorrectness(processor.getParameters(), overriddenParameters);
         ensureNoMissingParameters(processor.getParameters(), overriddenParameters);
 
-        return invoke(processor.getMessageProcessor(), allParameters(processor.getParameters(), overriddenParameters));
+        return null;//TODOinvoke(processor.getMessageProcessor(), allParameters(processor.getParameters(), overriddenParameters));
     }
 
     protected <T> T invoke(final MessageProcessor messageProcessor, final Map<String, Object> parameters) throws InitialisationException, MuleException {
@@ -316,11 +316,12 @@ public class DynamicModule implements Disposable {
         validateParameterTypeCorrectness(source.getParameters(), overriddenParameters);
         ensureNoMissingParameters(source.getParameters(), overriddenParameters);
 
-        final Registrar registrar = getRegistrar(source.getMessageSource());
+/*TODO        final Registrar registrar = getRegistrar(source.getMessageSource());
         if (registrar != null) {
             throw new IllegalStateException("Source <"+sourceName+"> is already subscribed");
         }
         createAndCacheRegistrar(source.getMessageSource()).start(allParameters(source.getParameters(), overriddenParameters), listener);
+         */
     }
 
     /**
@@ -339,11 +340,13 @@ public class DynamicModule implements Disposable {
             throw new IllegalArgumentException("Cannot find a Source named <"+sourceName+">");
         }
 
-        final Registrar registrar = getRegistrar(source.getMessageSource());
+/*TODO        final Registrar registrar = getRegistrar(source.getMessageSource());
         if (registrar == null) {
             throw new IllegalStateException("Source <"+sourceName+"> is not subscribed");
         }
         registrar.stop();
+         * 
+         */
     }
 
     /**
@@ -361,8 +364,8 @@ public class DynamicModule implements Disposable {
             try {
                 registrar.stop();
             } catch (MuleException e) {
-                if (DynamicModule.LOGGER.isLoggable(Level.WARNING)) {
-                    DynamicModule.LOGGER.log(Level.WARNING, "Got exception while closing <"+registrar+">", e);
+                if (DynamicModule.LOGGER.isWarnEnabled()) {
+                    DynamicModule.LOGGER.warn("Got exception while closing <"+registrar+">", e);
                 }
             }
         }

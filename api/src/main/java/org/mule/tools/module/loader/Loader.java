@@ -4,21 +4,14 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.mule.api.Capabilities;
-import org.mule.api.ConnectionManager;
-import org.mule.api.annotations.Configurable;
-import org.mule.api.annotations.Processor;
-import org.mule.api.annotations.Source;
-import org.mule.api.annotations.Transformer;
-import org.mule.api.annotations.param.Default;
-import org.mule.api.annotations.param.Optional;
-import org.mule.api.callback.SourceCallback;
-import org.mule.api.processor.MessageProcessor;
-import org.mule.api.source.MessageSource;
+import java.util.Set;
+import org.mule.tools.module.helper.Annotations;
 import org.mule.tools.module.helper.Classes;
+import org.mule.tools.module.helper.Modules;
 import org.mule.tools.module.helper.Reflections;
 import org.mule.tools.module.model.Module;
 import org.mule.util.StringUtils;
@@ -30,43 +23,30 @@ public class Loader {
     private static final String TRANSFORMER_CLASS_SUFFIX = "Transformer";
     private static final String PARAMETER_TYPE_FIELD_PREFIX = "_";
     private static final String PARAMETER_TYPE_FIELD_SUFFIX = "Type";
+    private static final Set<String> TECHNICAL_FIELD_NAME = new HashSet<String>(Arrays.asList("username", "password", "securityToken"));
 
-    protected final Class<?> findMessageProcessorClass(final Package modulePackage, final String processorName, final ClassLoader classLoader) {
-        final String messageProcessorClassName = modulePackage.getName()+"."+StringUtils.capitalize(processorName)+Loader.MESSAGE_PROCESSOR_CLASS_SUFFIX;
-        System.out.println(messageProcessorClassName);
-        return Classes.loadClass(classLoader, messageProcessorClassName);
+    protected final String findMessageProcessorClassName(final Package modulePackage, final String processorName) {
+        return modulePackage.getName()+"."+StringUtils.capitalize(processorName)+Loader.MESSAGE_PROCESSOR_CLASS_SUFFIX;
     }
 
-    protected final Class<?> findMessageSourceClass(final Package modulePackage, final String sourceName, final ClassLoader classLoader) {
-        final String messageSourceName = modulePackage.getName()+"."+StringUtils.capitalize(sourceName)+Loader.MESSAGE_SOURCE_CLASS_SUFFIX;
-        return Classes.loadClass(classLoader, messageSourceName);
+    protected final String findMessageSourceClassName(final Package modulePackage, final String sourceName) {
+        return modulePackage.getName()+"."+StringUtils.capitalize(sourceName)+Loader.MESSAGE_SOURCE_CLASS_SUFFIX;
     }
 
-    protected final Class<?> findTransformerClass(final Package modulePackage, final String transformerName, final ClassLoader classLoader) {
-        final String transformerClassName = modulePackage.getName()+"."+StringUtils.capitalize(transformerName)+Loader.TRANSFORMER_CLASS_SUFFIX;
-        return Classes.loadClass(classLoader, transformerClassName);
+    protected final String findTransformerClassName(final Package modulePackage, final String transformerName) {
+        return modulePackage.getName()+"."+StringUtils.capitalize(transformerName)+Loader.TRANSFORMER_CLASS_SUFFIX;
     }
 
-    protected final Object extractAnnotation(final Class<?> moduleClass) {
-        final org.mule.api.annotations.Module moduleAnnotation = Classes.getDeclaredAnnotation(moduleClass, org.mule.api.annotations.Module.class);
-        if (moduleAnnotation != null) {
-            return moduleAnnotation;
-        } else {
-            return Classes.getDeclaredAnnotation(moduleClass, org.mule.api.annotations.Connector.class);
-        }
+    public final Module load(final Class<?> moduleClass, final String connectionManagerClassName) {
+        return load(moduleClass, connectionManagerClassName, moduleClass.getPackage());
     }
 
-    public final Module load(final Capabilities module, final ConnectionManager<?, ?> connectionManager) {
-        return load(module, connectionManager, module.getClass().getPackage(), module.getClass().getClassLoader());
-    }
-
-    public final Module load(final Capabilities module, final ConnectionManager<?, ?> connectionManager, final Package modulePackage, final ClassLoader classLoader) {
-        if (module == null) {
-            throw new IllegalArgumentException("null module");
+    public final Module load(final Class<?> moduleClass, final String connectionManagerClassName, final Package modulePackage) {
+        if (moduleClass == null) {
+            throw new IllegalArgumentException("null moduleClass");
         }
 
-        final Class<?> moduleClass = module.getClass();
-        final Object annotation = extractAnnotation(moduleClass);
+        final Object annotation = Annotations.getConnectorAnnotation(moduleClass);
         if (annotation == null) {
             throw new IllegalArgumentException("Failed to find a Module annotation on <"+moduleClass.getCanonicalName()+">");
         }
@@ -74,10 +54,10 @@ public class Loader {
         final String name = extractAnnotationName(annotation);
         final String minMuleVersion = extractMinMuleVersion(annotation);
         final List<Module.Parameter> parameters = listParameters(moduleClass);
-        final List<Module.Processor> processors = listProcessors(modulePackage, moduleClass, classLoader);
-        final List<Module.Source> sources = listSources(modulePackage, moduleClass, classLoader);
-        final List<Module.Transformer> transformers = listTransformers(modulePackage, moduleClass, classLoader);
-        return new Module(name, minMuleVersion, module, parameters, processors, sources, transformers, connectionManager, classLoader);
+        final List<Module.Processor> processors = listProcessors(modulePackage, moduleClass);
+        final List<Module.Source> sources = listSources(modulePackage, moduleClass);
+        final List<Module.Transformer> transformers = listTransformers(modulePackage, moduleClass);
+        return new Module(name, minMuleVersion, moduleClass.getName(), parameters, processors, sources, transformers, connectionManagerClassName);
     }
 
     protected final String extractClassName(final String name) {
@@ -96,9 +76,9 @@ public class Loader {
     protected final List<Module.Parameter> listParameters(final Class<?> moduleClass) {
         final List<Module.Parameter> parameters = new LinkedList<Module.Parameter>();
         for (final Field field : Classes.allDeclaredFields(moduleClass)) {
-            if (field.getAnnotation(Configurable.class) != null) {
-                final boolean optional = field.getAnnotation(Optional.class) != null;
-                final String defaultValue = field.getAnnotation(Default.class) != null ? field.getAnnotation(Default.class).value() : null;
+            if (Annotations.getAnnotation(field, Annotations.CONFIGURABLE_ANNOTATION_CLASS_NAME) != null) {
+                final boolean optional = Annotations.getAnnotation(field, Annotations.OPTIONAL_ANNOTATION_CLASS_NAME) != null;
+                final String defaultValue = Annotations.getDefaultAnnotationValue(field);
                 parameters.add(new Module.Parameter(field.getName(), field.getType(), optional, defaultValue));
             }
         }
@@ -123,6 +103,12 @@ public class Loader {
             }
 
             final String parameterName = StringUtils.uncapitalize(fieldName.substring(Loader.PARAMETER_TYPE_FIELD_PREFIX.length(), fieldName.length()-Loader.PARAMETER_TYPE_FIELD_SUFFIX.length()));
+            if (Loader.TECHNICAL_FIELD_NAME.contains(parameterName)) {
+                //Filter fields added by DevKit.
+                //TODO What if user parameter have same name?
+                continue;
+            }
+
             parameterNames.add(parameterName);
         }
         return parameterNames.toArray(new String[parameterNames.size()]);
@@ -132,7 +118,7 @@ public class Loader {
         final List<Class<?>> parameterTypes = new LinkedList<Class<?>>();
         for (final Class<?> type : method.getParameterTypes()) {
             //SourceCallback is not a user parameter.
-            if (SourceCallback.class.equals(type)) {
+            if (Modules.SOURCE_CALLBACK_CLASS_NAME.equals(type.getName())) {
                 continue;
             }
 
@@ -141,25 +127,32 @@ public class Loader {
         return parameterTypes.toArray(new Class<?>[parameterTypes.size()]);
     }
 
-    protected final List<Module.Parameter> listMethodParameters(final Class<?> moduleClass, final Method method, final Class<?> generatedClass) {
+    protected final List<Module.Parameter> listMethodParameters(final Class<?> moduleClass, final Method method, final String generatedClassName) {
         final List<Module.Parameter> parameters = new LinkedList<Module.Parameter>();
         //Rely on the fact that parameters are added first in generated MessageProcessor/MessageSource.
         //TODO Pretty fragile. Replace with stronger alternative.
+        final Class<?> generatedClass = Classes.loadClass(generatedClassName);
+        if (generatedClass == null) {
+            throw new IllegalArgumentException("Failed to load <"+generatedClassName+">");
+        }
         final String[] parameterNames = extractMethodParameterNames(generatedClass);
         final Class<?>[] parameterTypes = extractMethodParameterTypes(method);
         final Annotation[][] parameterAnnotations = method.getParameterAnnotations();
-        for (int i = 0; i < parameterTypes.length; i++) {
+        if (parameterTypes.length < parameterNames.length || parameterAnnotations.length < parameterNames.length) {
+            throw new IllegalArgumentException("Failed to match method <"+method.getName()+"> parameters:\nnames <"+Arrays.toString(parameterNames) +">\ntypes <"+Arrays.toString(parameterTypes) +">\nannotations <"+Arrays.deepToString(parameterAnnotations) +">");
+        }
+        for (int i = 0; i < parameterNames.length; i++) {
             final String name = parameterNames[i];
             final Class<?> type = parameterTypes[i];
             final List<Annotation> annotations = Arrays.asList(parameterAnnotations[i]);
             boolean optional = false;
             String defaultValue = null;
             for (final Annotation annotation : annotations) {
-                if (annotation instanceof Optional) {
+                if (Annotations.OPTIONAL_ANNOTATION_CLASS_NAME.equals(annotation.annotationType().getName())) {
                     optional = true;
                 }
-                if (annotation instanceof Default) {
-                    defaultValue = Default.class.cast(annotation).value();
+                if (Annotations.DEFAULT_ANNOTATION_CLASS_NAME.equals(annotation.annotationType().getName())) {
+                    defaultValue = Reflections.invoke(annotation, "value");
                 }
             }
 
@@ -168,58 +161,37 @@ public class Loader {
         return parameters;
     }
 
-    protected final List<Module.Processor> listProcessors(final Package modulePackage, final Class<?> moduleClass, final ClassLoader classLoader) {
+    protected final List<Module.Processor> listProcessors(final Package modulePackage, final Class<?> moduleClass) {
         final List<Module.Processor> processors = new LinkedList<Module.Processor>();
         for (final Method method : moduleClass.getMethods()) {
-            final Processor annotation = method.getAnnotation(Processor.class);
+            final Object annotation = Annotations.getAnnotation(method, Annotations.PROCESSOR_ANNOTATION_CLASS_NAME);
             if (annotation != null) {
-                final Class<?> messageProcessorClass = findMessageProcessorClass(modulePackage, method.getName(), classLoader);
-                if (messageProcessorClass == null) {
-                    throw new IllegalArgumentException("Failed to find MessageProcessor class for processor <"+method.getName()+">");
-                }
-                final MessageProcessor messageProcessor = Classes.newInstance(messageProcessorClass);
-                if (messageProcessor == null) {
-                    throw new IllegalArgumentException("Failed to instantiate MessageProcessor class <"+messageProcessorClass.getCanonicalName()+">");
-                }
-                processors.add(new Module.Processor(extractName(annotation, method), messageProcessor, listMethodParameters(moduleClass, method, messageProcessorClass), annotation.intercepting()));
+                final String messageProcessorClassName = findMessageProcessorClassName(modulePackage, method.getName());
+                processors.add(new Module.Processor(extractName(annotation, method), messageProcessorClassName, listMethodParameters(moduleClass, method, messageProcessorClassName), Reflections.<Boolean>invoke(annotation, "intercepting")));
             }
         }
         return processors;
     }
 
-    protected final List<Module.Source> listSources(final Package modulePackage, final Class<?> moduleClass, final ClassLoader classLoader) {
+    protected final List<Module.Source> listSources(final Package modulePackage, final Class<?> moduleClass) {
         final List<Module.Source> sources = new LinkedList<Module.Source>();
         for (final Method method : moduleClass.getMethods()) {
-            final Source annotation = method.getAnnotation(Source.class);
+            final Object annotation = Annotations.getAnnotation(method, Annotations.SOURCE_ANNOTATION_CLASS_NAME);
             if (annotation != null) {
-                final Class<?> messageSourceClass = findMessageSourceClass(modulePackage, method.getName(), classLoader);
-                if (messageSourceClass == null) {
-                    throw new IllegalArgumentException("Failed to find MessageSource class for processor <"+method.getName()+">");
-                }
-                final MessageSource messageSource = Classes.newInstance(messageSourceClass);
-                if (messageSource == null) {
-                    throw new IllegalArgumentException("Failed to instantiate MessageSource class <"+messageSourceClass.getCanonicalName()+">");
-                }
-                sources.add(new Module.Source(extractName(annotation, method), messageSource, listMethodParameters(moduleClass, method, messageSourceClass)));
+                final String messageSourceClassName = findMessageSourceClassName(modulePackage, method.getName());
+                sources.add(new Module.Source(extractName(annotation, method), messageSourceClassName, listMethodParameters(moduleClass, method, messageSourceClassName)));
             }
         }
         return sources;
     }
 
-    protected final List<Module.Transformer> listTransformers(final Package modulePackage, final Class<?> moduleClass, final ClassLoader classLoader) {
+    protected final List<Module.Transformer> listTransformers(final Package modulePackage, final Class<?> moduleClass) {
         final List<Module.Transformer> transformers = new LinkedList<Module.Transformer>();
         for (final Method method : moduleClass.getMethods()) {
-            final Transformer annotation = method.getAnnotation(Transformer.class);
+            final Object annotation = Annotations.getAnnotation(method, Annotations.TRANSFORMER_ANNOTATION_CLASS_NAME);
             if (annotation != null) {
-                final Class<?> transformerClass = findTransformerClass(modulePackage, method.getName(), classLoader);
-                if (transformerClass == null) {
-                    throw new IllegalArgumentException("Failed to find Transformer class for processor <"+method.getName()+">");
-                }
-                final org.mule.api.transformer.Transformer transformer = Classes.newInstance(transformerClass);
-                if (transformer == null) {
-                    throw new IllegalArgumentException("Failed to instantiate Transformer class <"+transformerClass.getCanonicalName()+">");
-                }
-                transformers.add(new Module.Transformer(transformer, annotation.priorityWeighting(), annotation.sourceTypes()));
+                final String transformerClassName = findTransformerClassName(modulePackage, method.getName());
+                transformers.add(new Module.Transformer(transformerClassName, Reflections.<Integer>invoke(annotation, "priorityWeighting"), Reflections.<Class[]>invoke(annotation, "sourceTypes")));
             }
         }
         return transformers;

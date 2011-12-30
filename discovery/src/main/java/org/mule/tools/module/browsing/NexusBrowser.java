@@ -53,11 +53,11 @@ public class NexusBrowser {
         return matchingGroup;
     }
 
-    public final Set<String> listArtifactIds() throws Exception {
+    public final Set<String> listArtifactIds() throws NexusClientException, NexusConnectionException {
         return listArtifactIds(NexusBrowser.DEFAULT_GROUPD_ID, NexusBrowser.DEFAULT_PACKAGING);
     }
 
-    public final Set<String> listArtifactIds(final String groupId, final String packaging)  throws NexusClientException, NexusConnectionException  {
+    public final Set<String> listArtifactIds(final String groupId, final String packaging) throws NexusClientException, NexusConnectionException  {
         final NexusArtifact template = new NexusArtifact();
         template.setGroupId(groupId);
         template.setPackaging(packaging);
@@ -98,11 +98,11 @@ public class NexusBrowser {
         }
     }
 
-    public final Set<String> listArtifactVersions(final String artifactId) throws Exception {
+    public final Set<String> listArtifactVersions(final String artifactId) throws NexusClientException, NexusConnectionException {
         return listArtifactVersions(NexusBrowser.DEFAULT_GROUPD_ID, artifactId, NexusBrowser.DEFAULT_PACKAGING);
     }
 
-    public final Set<String> listArtifactVersions(final String groupId, final String artifactId, final String packaging)  throws NexusClientException, NexusConnectionException  {
+    public final Set<String> listArtifactVersions(final String groupId, final String artifactId, final String packaging) throws NexusClientException, NexusConnectionException {
         final NexusArtifact template = new NexusArtifact();
         template.setGroupId(groupId);
         template.setArtifactId(artifactId);

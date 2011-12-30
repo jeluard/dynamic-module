@@ -30,8 +30,8 @@
 
     <dynamic:config />
 
-    <flow name="list-modules">
-        <dynamic:list-modules />
+    <flow name="list-ids">
+        <dynamic:list-ids />
     </flow>
 
 </mule>

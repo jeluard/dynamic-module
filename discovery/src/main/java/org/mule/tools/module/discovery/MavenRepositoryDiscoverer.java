@@ -3,12 +3,13 @@ package org.mule.tools.module.discovery;
 import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.maven.repository.internal.DefaultServiceLocator;
 import org.apache.maven.repository.internal.MavenRepositorySystemSession;
 import org.mule.tools.module.discovery.wagon.ManualWagonProvider;
@@ -20,6 +21,7 @@ import org.sonatype.aether.connector.wagon.WagonProvider;
 import org.sonatype.aether.connector.wagon.WagonRepositoryConnectorFactory;
 import org.sonatype.aether.graph.Dependency;
 import org.sonatype.aether.graph.DependencyNode;
+import org.sonatype.aether.graph.Exclusion;
 import org.sonatype.aether.repository.LocalRepository;
 import org.sonatype.aether.repository.RemoteRepository;
 import org.sonatype.aether.resolution.DependencyRequest;
@@ -33,7 +35,7 @@ import org.sonatype.aether.util.graph.PreorderNodeListGenerator;
  */
 public final class MavenRepositoryDiscoverer {
 
-    private static final Logger LOGGER = Logger.getLogger(MavenRepositoryDiscoverer.class.getPackage().getName());
+    private static final Log LOGGER = LogFactory.getLog(MavenRepositoryDiscoverer.class.getPackage().getName());
 
     private final File localRepository;
     private static final File DEFAULT_LOCAL_REPOSITORY = new File(System.getProperty("user.home")+"/.m2/repository");
@@ -80,13 +82,8 @@ public final class MavenRepositoryDiscoverer {
         final LocalRepository localRepo = new LocalRepository(this.localRepository);
         session.setLocalRepositoryManager(system.newLocalRepositoryManager(localRepo));
 
-        final Dependency dependency = new Dependency(new DefaultArtifact(groupId, artifactId, MavenRepositoryDiscoverer.DEFAULT_EXTENSION, version), MavenRepositoryDiscoverer.DEFAULT_SCOPE);
-        final CollectRequest collectRequest = new CollectRequest();
-        collectRequest.setRoot(dependency);
-        for (final RemoteRepository remoteRepository : this.repositories) {
-            collectRequest.addRepository(remoteRepository);
-        }
-
+        final Dependency dependency = new Dependency(new DefaultArtifact(groupId, artifactId, MavenRepositoryDiscoverer.DEFAULT_EXTENSION, version), MavenRepositoryDiscoverer.DEFAULT_SCOPE, false);
+        final CollectRequest collectRequest = new CollectRequest(dependency, this.repositories);
         final DependencyNode node = system.collectDependencies(session, collectRequest).getRoot();
 
         system.resolveDependencies(session, new DependencyRequest(node, null));
@@ -97,8 +94,8 @@ public final class MavenRepositoryDiscoverer {
         final List<URL> urls = new LinkedList<URL>();
         for (final Artifact artifact : nodeListGenerator.getArtifacts(true)) {
             if (artifact.getFile() == null) {
-                if (MavenRepositoryDiscoverer.LOGGER.isLoggable(Level.FINE)) {
-                    MavenRepositoryDiscoverer.LOGGER.log(Level.FINE, "Failed to resolve artifact <{0}>; it will be ignored", artifact.getArtifactId());
+                if (MavenRepositoryDiscoverer.LOGGER.isDebugEnabled()) {
+                    MavenRepositoryDiscoverer.LOGGER.debug("Failed to resolve artifact <"+artifact.getArtifactId()+">; it will be ignored");
                 }
 
                 continue;

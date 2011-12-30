@@ -3,55 +3,243 @@
   <head>
     <meta charset="UTF-8">
     <title>Mule Modules playground</title>
-    <link rel="stylesheet" href="css/default.css">
     <link rel="stylesheet" href="http://twitter.github.com/bootstrap/1.4.0/bootstrap.min.css">
-    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
-    <script type="text/javascript" src="script/bootstrap-breadcrumbs.js"></script>
+    <link rel="stylesheet" href="css/default.css">
+    <script defer type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+    <script defer type="text/javascript" src="http://twitter.github.com/bootstrap/1.4.0/bootstrap-twipsy.js"></script>
+    <script defer type="text/javascript" src="https://raw.github.com/jeluard/bootstrap-breadcrumb/master/bootstrap-breadcrumb.js"></script>
+    <script defer type="text/javascript" src="http://fgnass.github.com/spin.js/spin.min.js"></script>
     <script type="text/javascript" src="mule-resource/js/mule.js"></script>
     <script type="text/javascript">
-      //var breadcrumbs = $('#breadcrumb').breadcrumb('push');
+      var breadcrumb;
+      var currentLevel = 0;
+      var spinner;
+
       function initialise() {
-        listenClick();
+        breadcrumb = $('#header').breadcrumb();
+        breadcrumb.push('Home');
+
+        var opts = {
+          lines: 10, // The number of lines to draw
+          //length: 36, // The length of each line
+          width: 3, // The line thickness
+          radius: 4, // The radius of the inner circle
+          color: '#000', // #rgb or #rrggbb
+          speed: 0.8, // Rounds per second
+          trail: 100, // Afterglow percentage
+          shadow: false // Whether to render a shadow
+        };
+        spinner = new Spinner(opts);
+
         displayModules();
+        $('#header').on('change', function(event, path) {
+          var level = path != undefined ? path.length : 0;
+          currentLevel = level;
+          clearError();
+          clearElements();
+          if (level == 1) {
+            displayModules();
+          } else if (level == 2) {
+            displayVersions(path[1]);
+          } else if (level == 3) {
+            displayMetaData(path[1], path[2]);
+          } else if (level == 4) {
+          }
+        })
       }
 
-      function listenClick() {
+      function registerClickListener() {
         document.getElementById('elements').addEventListener('click', function(e) {
-          $('#header').breadcrumb('push');
-          //breadcrumbs.push()
-          $('#header').append("<li><a href='#'>").append(e.target.textContent).append("</a> <span class='divider'>/</span></li>");
+          if (currentLevel < 3) {
+            breadcrumb.push(e.target.textContent);
+          }
         }, false);
       }
 
+      function clearElements() {
+        $('#all-elements').children().remove();
+      }
+
+      function addElements(elements) {
+        $('#all-elements').append('<ul id="elements">');
+        for (var i=0;i<elements.length;i++) {
+          $('#elements').append("<li><a href='#'>"+elements[i]+"</a></li>");
+        }
+        registerClickListener();
+      }
+
+      function showSpinner() {
+        $('#header').addClass("disabled");
+        var target = document.getElementById('all-elements');
+        spinner.spin(target);
+      }
+
+      function hideSpinner() {
+        $('#header').removeClass("disabled");
+        spinner.stop();
+      }
+
+      function showError(error) {
+        $('#header').after('<div id="error" class="alert-message error"><strong>Error fetching module details:</strong><p>'+error.replace('\n', '<br />', 'gm')+'</p></div>');
+      }
+
+      function clearError() {
+        $('#error').remove();
+      }
+
       function displayModules() {
-        /*mule.rpc("/modules", "", function callback(message, error) {
-            console.log(message.data);
-        });*/
-        $('#elements').append("<li id='1'>err</li>");
-        $('#elements').append("<li id='2'>err2</li>");
+        showSpinner();
+        var received = false;
+        mule.rpc("/ids", "", function callback(message, error) {
+          hideSpinner();
+          if (received) {
+            received = false;
+            return;
+          }
+          received = true;
+
+          if (error) {
+            showError(error);
+            return;
+          }
+
+          addElements(message.data);
+        });
       }
 
-      function displayVersions() {
-        $('#elements').append("<li id='1'>1</li>");
-        $('#elements').append("<li id='2'>2</li>");
+      function displayVersions(module) {
+        showSpinner();
+        var received = false;
+        mule.rpc("/versions", JSON.stringify({ module: module, includeSnapshots: false }), function callback(message, error) {
+          hideSpinner();
+          if (received) {
+            received = false;
+            return;
+          }
+          received = true;
+
+          if (error) {
+            showError(error);
+            return;
+          }
+
+          if (message.data.length == 0) {
+            $('#all-elements').append('<div>No released version yet.</div>');
+          } else {
+            addElements(message.data);
+          }
+        });
       }
 
-      function displayMetaData() {
-        $('#elements').append("<li id='1'>Param1</li>");
-        $('#elements').append("<li id='2'>Param2</li>");
-        $('#elements').append("<li id='1'>Method1</li>");
-        $('#elements').append("<li id='2'>Method2</li>");
+      function parameters2String(parameters) {
+        function title(parameter) {
+          var title = "type: "+parameter.type;
+          title += " optional: "+parameter.optional;
+          if (parameter.defaultValue) {
+            title += " default: "+parameter.defaultValue;
+          }
+          return title;
+        }
+        return parameters.map(function(parameter) { return '<a href="#" rel="twipsy" data-placement="below" title="'+title(parameter)+'">'+parameter.name+'</a>'; }).join(', ');
+      }
+
+      function displayMetaData(id, version) {
+        showSpinner();
+        var received = false;
+        mule.rpc("/module", JSON.stringify({ id: id, version: version }), function callback(message, error) {
+          hideSpinner();
+          if (received) {
+            received = false;
+            return;
+          }
+          received = true;
+
+          var module = JSON.parse(message.data);
+
+          //Workaround Exception not being propagated
+          if (module.name === '') {
+            showError(module.type);
+            return;
+          }
+
+          var details = "";
+          details += '<div class="name"><span class="label notice">Name</span><span class="value">'+module.name+'</span></div>';
+          details += '<div class="minMuleVersion"><span class="label notice">Minimum Mule Version</span><span class="value">'+module.minMuleVersion+'</span></div>';
+          //details += '<div class="type"><span class="label">Type</span><span class="value">'+module.type+'</span></div>';
+          //if (module.connectionManagerType) {
+          //  details += '<div class="connectionManagerType"><span class="label">Connection Manager Type</span><span class="value">'+module.connectionManagerType+'</span></div>';
+          //}
+          if (module.parameters.length > 0) {
+            details += '<span class="label notice">Parameters</span>';
+            details += '<table class="parameters bordered-table zebra-striped"><thead><tr><th>Name</th><th>Type</th><th>Optional</th><th>Default Value</th></tr></thead>';
+            details += '<tbody>';
+            for (var i=0;i<module.parameters.length;i++) {
+              var parameter = module.parameters[i];
+              details += '<tr>';
+              details += '<td>'+parameter.name+'</td>';
+              details += '<td>'+parameter.type+'</td>';
+              details += '<td>'+parameter.optional+'</td>';
+              details += '<td>'+parameter.defaultValue+'</td>';
+              details += '</tr>';
+            }
+            details += '</tbody>';
+            details += '</table>';
+          }
+          if (module.processors.length > 0) {
+            details += '<span class="label notice">Processors</span>';
+            details += '<table class="processors bordered-table zebra-striped"><thead><tr><th>Name</th><th>Parameters</th><th>Intercepting</th></tr></thead>';
+            details += '<tbody>';
+            for (var i=0;i<module.processors.length;i++) {
+              var processor = module.processors[i];
+              details += '<tr>';
+              details += '<td>'+processor.name+'</td>';
+              details += '<td>'+parameters2String(processor.parameters)+'</td>';
+              details += '<td>'+processor.intercepting+'</td>';
+              details += '</tr>';
+            }
+            details += '</tbody>';
+            details += '</table>';
+          }
+          if (module.sources.length > 0) {
+            details += '<span class="label notice">Sources</span>';
+            details += '<table class="sources bordered-table zebra-striped"><thead><tr><th>Name</th><th>Parameters</th></tr></thead>';
+            details += '<tbody>';
+            for (var i=0;i<module.sources.length;i++) {
+              var source = module.sources[i];
+              details += '<tr>';
+              details += '<td>'+source.name+'</td>';
+              details += '<td>'+parameters2String(source.parameters)+'</td>';
+              details += '</tr>';
+            }
+            details += '</tbody>';
+            details += '</table>';
+          }
+          if (module.transformers.length > 0) {
+            details += '<span class="label notice">Transformers</span>';
+            details += '<table class="transformers bordered-table zebra-striped"><thead><tr><th>Type</th><th>Priority Weighting</th><th>Source Types</th></tr></thead>';
+            details += '<tbody>';
+            for (var i=0;i<module.transformers.length;i++) {
+              var transformer = module.transformers[i];
+              details += '<tr>';
+              details += '<td>'+transformer.type+'</td>';
+              details += '<td>'+transformer.priorityWeighting+'</td>';
+              details += '<td>'+transformer.sourceTypes+'</td>';
+              details += '</tr>';
+            }
+            details += '</tbody>';
+            details += '</table>';
+          }
+          $('#all-elements').append(details);
+          $('#all-elements').append('<script>$(function () {$("a[rel=twipsy]").twipsy({live: true})})');
+        });
       }
     </script>
   </head>
   <body onload="initialise()">
-      <div>
+      <div id="description">Browse all available <a href="http://www.mulesoft.org/documentation/display/DEVKIT/Home">DevKit modules</a>.</div>
+      <div id="content">
         <ul id="header" class="breadcrumb"></ul>
-          <!--li><a href="#">Home</a> <span class="divider">/</span></li>
-          <li><a href="#">Middle page</a> <span class="divider">/</span></li>
-          <li><a href="#">Another one</a> <span class="divider">/</span></li>
-          <li class="active">You are here</li-->
-        <div id="content">
+        <div id="all-elements">
           <ul id="elements"></ul>
         </div>
       </div>

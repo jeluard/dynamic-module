@@ -1,3 +1,11 @@
-<!-- BEGIN_INCLUDE(dynamic:list-modules) -->
-    <dynamic:list-modules />
-<!-- END_INCLUDE(dynamic:list-modules) -->
+<!-- BEGIN_INCLUDE(dynamic:list-ids) -->
+    <dynamic:list-ids />
+<!-- END_INCLUDE(dynamic:list-ids) -->
+
+<!-- BEGIN_INCLUDE(dynamic:list-versions) -->
+    <dynamic:list-versions id="mule-module-sfdc" includeSnapshots="false" />
+<!-- END_INCLUDE(dynamic:list-versions) -->
+
+<!-- BEGIN_INCLUDE(dynamic:module) -->
+    <dynamic:module id="mule-module-sfdc" version="4.2" />
+<!-- END_INCLUDE(dynamic:module) -->

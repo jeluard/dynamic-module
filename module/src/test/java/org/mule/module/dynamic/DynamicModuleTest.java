@@ -35,7 +35,7 @@ public class DynamicModuleTest extends FunctionalTestCase {
 
     @Test
     public void testFlow() throws Exception {
-        Assert.assertFalse(Collection.class.cast(runFlow("list-modules")).isEmpty());
+        Assert.assertFalse(Collection.class.cast(runFlow("list-ids")).isEmpty());
     }
 
     /**

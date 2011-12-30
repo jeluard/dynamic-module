@@ -1,25 +1,24 @@
 package org.mule.tools.module.loader;
 
 import java.io.IOException;
+import java.lang.annotation.Annotation;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
-import org.mule.api.Capabilities;
-import org.mule.api.Capability;
-import org.mule.api.ConnectionManager;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.mule.tools.module.helper.Classes;
 import org.mule.tools.module.helper.Jars;
+import org.mule.tools.module.helper.Modules;
 import org.mule.tools.module.model.Module;
 
 public class JarLoader extends Loader {
 
-    private static final Logger LOGGER = Logger.getLogger(JarLoader.class.getPackage().getName());
+    private static final Log LOGGER = LogFactory.getLog(JarLoader.class.getPackage().getName());
 
     private static final String MODULE_CLASS_SUFFIX = "Module";
     private static final String CONNECTOR_CLASS_SUFFIX = "Connector";
@@ -40,25 +39,35 @@ public class JarLoader extends Loader {
         return potentialModuleClassNames;
     }
 
+    protected final boolean isValidModuleClass(final Class<?> clazz) {
+        final Annotation[] annotations = clazz.getAnnotations();
+        final String moduleAnnotationClassName = "org.mule.api.annotations.Module";
+        final String connectorAnnotationClassName = "org.mule.api.annotations.Connector";
+        for (final Annotation annotation : annotations) {
+            if (moduleAnnotationClassName.equals(annotation.annotationType().getName()) || 
+                connectorAnnotationClassName.equals(annotation.annotationType().getName())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /**
      * @param fileNames
      * @param classLoader
      * @return first module found among `fileNames`
      */
-    protected final Class<?> findModuleClass(final List<String> fileNames, final ClassLoader classLoader) {
-        final List<String> potentialModuleClassNames = findPotentialModuleClassNames(fileNames);
-        if (potentialModuleClassNames.isEmpty()) {
-            throw new IllegalArgumentException("Failed to find potential Module class among <"+fileNames+">");
-        }
+    protected final Class<?> findModuleClass(final List<String> potentialModuleClassNames, final ClassLoader classLoader) {
         for (final String potentialModuleClassName : potentialModuleClassNames) {
             final String className = extractClassName(potentialModuleClassName);
             final Class<?> moduleClass = Classes.loadClass(classLoader, className);
             if (moduleClass == null) {
                 throw new IllegalArgumentException("Failed to load <"+className+">");
             }
-            if (moduleClass.getAnnotation(org.mule.api.annotations.Module.class) == null && moduleClass.getAnnotation(org.mule.api.annotations.Connector.class) == null) {
-                if (JarLoader.LOGGER.isLoggable(Level.WARNING)) {
-                    JarLoader.LOGGER.log(Level.WARNING, "Skipping invalid module <{0}>", className);
+
+            if (!isValidModuleClass(moduleClass)) {
+                if (JarLoader.LOGGER.isWarnEnabled()) {
+                    JarLoader.LOGGER.warn("Skipping invalid module <"+className+">");
                 }
 
                 continue;
@@ -85,22 +94,11 @@ public class JarLoader extends Loader {
     /**
      * @param generatedPackageName
      * @param moduleName
-     * @param capabilities
-     * @param classLoader
-     * @return {@link ConnectionManager} for module if any, null otherwise
+     * @return {@link ConnectionManager} Class name if any, null otherwise
      */
-    protected final ConnectionManager<?, ?> loadConnectionManager(final String generatedPackageName, final String moduleName, final Capabilities capabilities, final ClassLoader classLoader) {
-        if (capabilities.isCapableOf(Capability.CONNECTION_MANAGEMENT_CAPABLE)) {
-            final String connectionManagerClassName = generatedPackageName+"."+moduleName+JarLoader.CONNECTION_MANAGER_CLASS_SUFFIX;
-            final Class<?> connectionManagerClass = Classes.loadClass(classLoader, connectionManagerClassName);
-            if (connectionManagerClass == null) {
-                throw new IllegalArgumentException("Failed to load ConnectionManager class <"+connectionManagerClassName+">");
-            }
-            final ConnectionManager<?, ?> connectionManager = Classes.newInstance(connectionManagerClass);
-            if (connectionManager == null) {
-                throw new IllegalArgumentException("Failed to instantiate ConnectionManager class <"+connectionManagerClass.getCanonicalName()+">");
-            }
-            return connectionManager;
+    protected final String extractConnectionManagerClassName(final String generatedPackageName, final String moduleName, final Object module) {
+        if (Modules.isConnectionManagementCapable(module)) {
+            return generatedPackageName+"."+moduleName+JarLoader.CONNECTION_MANAGER_CLASS_SUFFIX;
         }
         return null;
     }
@@ -111,14 +109,22 @@ public class JarLoader extends Loader {
      * @param classLoader
      * @return all {@link Module} sub {@link Class}es
      */
-    protected final List<Class<?>> findModuleSubClasses(final Class<?> moduleClass, final List<String> fileNames, final URLClassLoader classLoader) {
+    protected final List<Class<?>> findModuleSubClasses(final Class<?> moduleClass, final List<String> fileNames, final ClassLoader classLoader) {
         final String moduleClassSimpleName = moduleClass.getSimpleName();
         final List<Class<?>> subClasses = new LinkedList<Class<?>>();
         for (final String fileName : fileNames) {
             if (fileName.contains(moduleClassSimpleName)) {
-                final Class<?> clazz = Classes.loadClass(classLoader, extractClassName(fileName));
-                if (Classes.allSuperClasses(clazz).contains(moduleClass)) {
-                    subClasses.add(clazz);
+                final String className = extractClassName(fileName);
+                try {
+                    final Class<?> clazz = Classes.loadClass(classLoader, className);
+                    //Ensures this is effectively a module subclass
+                    if (Classes.allSuperClasses(clazz).contains(moduleClass)) {
+                        subClasses.add(clazz);
+                    }
+                } catch (Error e) {
+                    if (JarLoader.LOGGER.isWarnEnabled()) {
+                        JarLoader.LOGGER.warn("Failed to load <"+className+">", e);
+                    }
                 }
             }
         }
@@ -133,22 +139,32 @@ public class JarLoader extends Loader {
     public final Module load(final List<URL> urls) throws IOException {
         final URL moduleJar = urls.get(0);
         final List<String> allFileNames = Jars.allFileNames(moduleJar);
-        final URLClassLoader classLoader = new URLClassLoader(urls.toArray(new URL[urls.size()]));
-        final Class<?> moduleClass = findModuleClass(allFileNames, classLoader);
-        if (moduleClass == null) {
-            throw new IllegalArgumentException("Failed to find Module class in <"+moduleJar+">");
-        }
+        final ClassLoader classLoader = new URLClassLoader(urls.toArray(new URL[urls.size()]));
+        final ClassLoader currentClassLoader = Thread.currentThread().getContextClassLoader();
+        Thread.currentThread().setContextClassLoader(classLoader);
+        try {
+            final List<String> potentialModuleClassNames = findPotentialModuleClassNames(allFileNames);
+            if (potentialModuleClassNames.isEmpty()) {
+                throw new IllegalArgumentException("Failed to find potential Module class among <"+allFileNames+">");
+            }
+            final Class<?> moduleClass = findModuleClass(potentialModuleClassNames, classLoader);
+            if (moduleClass == null) {
+                throw new IllegalArgumentException("Failed to find Module class in <"+potentialModuleClassNames+"> ");
+            }
 
-        final List<Class<?>> moduleSubClasses = findModuleSubClasses(moduleClass, allFileNames, classLoader);
-        final Class<?> mostSpecificSubClass = findMostSpecificSubClass(moduleSubClasses);
-        final Capabilities module = Classes.newInstance(mostSpecificSubClass);
-        if (module == null) {
-            throw new IllegalArgumentException("Failed to instantiate Module class <"+moduleClass.getSimpleName()+">");
-        }
-        if (module.isCapableOf(Capability.CONNECTION_MANAGEMENT_CAPABLE)) {
-            return load(module, loadConnectionManager(mostSpecificSubClass.getPackage().getName(), moduleClass.getSimpleName(), module, classLoader));
-        } else {
-            return load(module, null);
+            final List<Class<?>> moduleSubClasses = findModuleSubClasses(moduleClass, allFileNames, classLoader);
+            if (moduleSubClasses.isEmpty()) {
+                throw new IllegalArgumentException("Failed to find subclasses for Module <"+moduleClass.getSimpleName()+">");
+            }
+
+            final Class<?> mostSpecificSubClass = findMostSpecificSubClass(moduleSubClasses);
+            final Object module = Classes.newInstance(mostSpecificSubClass);
+            if (module == null) {
+                throw new IllegalArgumentException("Failed to instantiate Module class <"+moduleClass.getSimpleName()+">");
+            }
+            return load(mostSpecificSubClass, extractConnectionManagerClassName(mostSpecificSubClass.getPackage().getName(), moduleClass.getSimpleName(), module));
+        } finally {
+            Thread.currentThread().setContextClassLoader(currentClassLoader);
         }
     }
 

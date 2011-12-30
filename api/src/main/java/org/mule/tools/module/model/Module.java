@@ -5,13 +5,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import org.mule.api.Capabilities;
-import org.mule.api.Capability;
-import org.mule.api.ConnectionManager;
-import org.mule.api.processor.MessageProcessor;
-import org.mule.api.source.MessageSource;
-import org.mule.tools.module.helper.ConnectionManagers;
-
 //TODO Add support for OAuth1 and OAuth2
 public class Module {
 
@@ -81,23 +74,23 @@ public class Module {
     public static class Processor {
 
         private final String name;
-        private final MessageProcessor messageProcessor;
+        private final String type;
         private final List<Parameter> parameters;
         private final boolean intercepting;
 
-        public Processor(final String name, final MessageProcessor messageProcessor, final List<Parameter> parameters, final boolean intercepting) {
+        public Processor(final String name, final String type, final List<Parameter> parameters, final boolean intercepting) {
             if (name == null) {
                 throw new IllegalArgumentException("null name");
             }
-            if (messageProcessor == null) {
-                throw new IllegalArgumentException("null messageProcessor");
+            if (type == null) {
+                throw new IllegalArgumentException("null type");
             }
             if (parameters == null) {
                 throw new IllegalArgumentException("null parameters");
             }
 
             this.name = name;
-            this.messageProcessor = messageProcessor;
+            this.type = type;
             this.parameters = parameters;
             this.intercepting = intercepting;
         }
@@ -106,8 +99,8 @@ public class Module {
             return this.name;
         }
 
-        public final MessageProcessor getMessageProcessor() {
-            return this.messageProcessor;
+        public final String getType() {
+            return this.type;
         }
 
         public final List<Parameter> getParameters() {
@@ -120,7 +113,7 @@ public class Module {
 
         @Override
         public String toString() {
-            return "name: <"+this.name+"> type: <"+this.messageProcessor.getClass().getName()+"> parameters: <"+this.parameters+"> intercepting: <"+this.intercepting+">";
+            return "name: <"+this.name+"> type: <"+this.type+"> parameters: <"+this.parameters+"> intercepting: <"+this.intercepting+">";
         }
 
     }
@@ -128,22 +121,22 @@ public class Module {
     public static class Source {
 
         private final String name;
-        private final MessageSource messageSource;
+        private final String type;
         private final List<Parameter> parameters;
 
-        public Source(final String name, final MessageSource messageSource, final List<Parameter> parameters) {
+        public Source(final String name, final String type, final List<Parameter> parameters) {
             if (name == null) {
                 throw new IllegalArgumentException("null name");
             }
-            if (messageSource == null) {
-                throw new IllegalArgumentException("null messageSource");
+            if (type == null) {
+                throw new IllegalArgumentException("null type");
             }
             if (parameters == null) {
                 throw new IllegalArgumentException("null parameters");
             }
 
             this.name = name;
-            this.messageSource = messageSource;
+            this.type = type;
             this.parameters = parameters;
         }
 
@@ -151,8 +144,8 @@ public class Module {
             return this.name;
         }
 
-        public final MessageSource getMessageSource() {
-            return this.messageSource;
+        public final String getType() {
+            return this.type;
         }
 
         public final List<Parameter> getParameters() {
@@ -161,7 +154,7 @@ public class Module {
 
         @Override
         public String toString() {
-            return "name: <"+this.name+"> type: <"+this.messageSource.getClass().getName()+"> parameters: <"+this.parameters+">";
+            return "name: <"+this.name+"> type: <"+this.type+"> parameters: <"+this.parameters+">";
         }
 
     }
@@ -171,25 +164,25 @@ public class Module {
      */
     public static class Transformer {
 
-        private final org.mule.api.transformer.Transformer transformer;
+        private final String type;
         private final int priorityWeighting;
         private final Class<?>[] sourceTypes;
 
-        public Transformer(final org.mule.api.transformer.Transformer transformer, final int priorityWeighting, final Class<?>[] sourceTypes) {
-            if (transformer == null) {
-                throw new IllegalArgumentException("null transformer");
+        public Transformer(final String type, final int priorityWeighting, final Class<?>[] sourceTypes) {
+            if (type == null) {
+                throw new IllegalArgumentException("null type");
             }
             if (sourceTypes == null) {
                 throw new IllegalArgumentException("null sourceTypes");
             }
 
-            this.transformer = transformer;
+            this.type = type;
             this.priorityWeighting = priorityWeighting;
             this.sourceTypes = sourceTypes;
         }
 
-        public final org.mule.api.transformer.Transformer getTransformer() {
-            return this.transformer;
+        public final String getType() {
+            return this.type;
         }
 
         public final int getPriorityWeighting() {
@@ -202,30 +195,29 @@ public class Module {
 
         @Override
         public String toString() {
-            return "type: <"+this.transformer.getClass().getName()+"> priorityWeighting: <"+this.priorityWeighting+"> sourceTypes: <"+Arrays.toString(this.sourceTypes) +">";
+            return "type: <"+this.type+"> priorityWeighting: <"+this.priorityWeighting+"> sourceTypes: <"+Arrays.toString(this.sourceTypes) +">";
         }
 
     }
 
     private final String name;
     private final String minMuleVersion;
-    private final Capabilities module;
+    private final String type;
     private final List<Parameter> parameters;
     private final List<Processor> processors;
     private final List<Source> sources;
     private final List<Transformer> transformers;
-    private final ClassLoader classLoader;
-    private final ConnectionManager<?, ?> connectionManager;
+    private final String connectionManagerType;
 
-    public Module(final String name, final String minMuleVersion, final Capabilities module, final List<Parameter> parameters, final List<Processor> processors, final List<Source> sources, final List<Transformer> transformers, final ConnectionManager<?, ?> connectionManager, final ClassLoader classLoader) {
+    public Module(final String name, final String minMuleVersion, final String type, final List<Parameter> parameters, final List<Processor> processors, final List<Source> sources, final List<Transformer> transformers, final String connectionManagerTypeName) {
         if (name == null) {
             throw new IllegalArgumentException("null name");
         }
         if (minMuleVersion == null) {
             throw new IllegalArgumentException("null minMuleVersion");
         }
-        if (module == null) {
-            throw new IllegalArgumentException("null modules");
+        if (type == null) {
+            throw new IllegalArgumentException("null type");
         }
         if (parameters == null) {
             throw new IllegalArgumentException("null parameters");
@@ -242,27 +234,12 @@ public class Module {
 
         this.name = name;
         this.minMuleVersion = minMuleVersion;
-        this.module = module;
+        this.type = type;
         this.parameters = Collections.unmodifiableList(new ArrayList<Parameter>(parameters));
         this.processors = Collections.unmodifiableList(new ArrayList<Processor>(processors));
         this.sources = Collections.unmodifiableList(new ArrayList<Source>(sources));
         this.transformers = Collections.unmodifiableList(new ArrayList<Transformer>(transformers));
-        this.classLoader = classLoader;
-        this.connectionManager = connectionManager;
-
-        if (connectionManager != null) {
-            ensureConnectionManagementCapability();
-        }
-    }
-
-    protected final void ensureCapability(final Capability capability) {
-        if (!this.module.isCapableOf(capability)) {
-            throw new IllegalArgumentException("Module does not support "+Capability.CONNECTION_MANAGEMENT_CAPABLE);
-        }
-    }
-
-    protected final void ensureConnectionManagementCapability() {
-        ensureCapability(Capability.CONNECTION_MANAGEMENT_CAPABLE);
+        this.connectionManagerType = connectionManagerTypeName;
     }
 
     public final String getName() {
@@ -273,15 +250,8 @@ public class Module {
         return this.minMuleVersion;
     }
 
-    public final Capabilities getModule() {
-        return this.module;
-    }
-
-    public Object getModuleObject() {
-        if (getConnectionManager() != null) {
-            return getConnectionManager();
-        }
-        return getModule();
+    public final String getType() {
+        return this.type;
     }
 
     public final List<Parameter> getParameters() {
@@ -300,30 +270,8 @@ public class Module {
         return this.transformers;
     }
 
-    public final ConnectionManager<?, ?> getConnectionManager() {
-        return this.connectionManager;
-    }
-
-    public final ClassLoader getClassLoader() {
-        return this.classLoader;
-    }
-
-    public final void setUsername(final String username) {
-        ensureConnectionManagementCapability();
-
-        ConnectionManagers.setUsername(this.connectionManager, username);
-    }
-
-    public final void setPassword(final String password) {
-        ensureConnectionManagementCapability();
-
-        ConnectionManagers.setPassword(this.connectionManager, password);
-    }
-
-    public final void setSecurityToken(final String securityToken) {
-        ensureConnectionManagementCapability();
-
-        ConnectionManagers.setSecurityToken(this.connectionManager, securityToken);
+    public final String getConnectionManagerType() {
+        return this.connectionManagerType;
     }
 
 }

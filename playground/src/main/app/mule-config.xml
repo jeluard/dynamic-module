@@ -14,11 +14,20 @@
 
     <dynamic:config />
 
-    <flow name="fetch-modules">
-        <ajax:inbound-endpoint channel="/modules"/>
-        <dynamic:list-modules />
-        <json:object-to-json-transformer name="artifactToJson"
-                                            sourceClass="org.sonatype.nexus.rest.model.NexusArtifact[][]" />
+    <flow name="fetch-ids">
+        <ajax:inbound-endpoint channel="/ids" />
+        <dynamic:list-ids />
+    </flow>
+
+    <flow name="fetch-versions">
+        <ajax:inbound-endpoint channel="/versions" />
+        <dynamic:list-versions id="#[json:module]" includeSnapshots="#[json:includeSnapshots]" />
+    </flow>
+
+    <flow name="fetch-module">
+        <ajax:inbound-endpoint channel="/module" />
+        <dynamic:module id="#[json:id]" version="#[json:version]" />
+        <json:object-to-json-transformer />
     </flow>
 
 </mule>

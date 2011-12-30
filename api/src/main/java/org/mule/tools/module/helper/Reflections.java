@@ -87,7 +87,7 @@ public final class Reflections {
             try {
                 Reflections.invoke(object, Reflections.setterMethodName(parameterName), entry.getValue(), Object.class);
             } catch (Exception e) {
-                throw new RuntimeException("Failed to set parameter <"+parameterName+">", e);
+                throw new RuntimeException("Failed to set parameter <"+parameterName+"> on <"+object+">", e);
             }
         }
     }
@@ -204,6 +204,22 @@ public final class Reflections {
             return (T) object.getClass().getMethod(method).invoke(object);
         } catch (Exception e) {
             throw new RuntimeException("Failed to invoke <"+method+"> on <"+object+">", e);
+        }
+    }
+
+    /**
+     * @param <T>
+     * @param object
+     * @param method
+     * @param argument
+     * @param argumentType 
+     * @return result of dynamic invocation of `method` on `object` with `argument`.
+     */
+    public static <T> T invoke(final String clazz, final String method, final Object argument) {
+        try {
+            return (T) Classes.loadClass(clazz).getMethod(method, argument.getClass()).invoke(null, argument);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to invoke static <"+method+"> with arguments <"+argument+">", e);
         }
     }
 
