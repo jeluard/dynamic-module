@@ -94,6 +94,8 @@ public final class Classes {
             final char character = methodName.charAt(i);
             if (i != 0 && Character.isUpperCase(character)) {//If upper case and not first character append '-'
                 builder.append("-").append(Character.toLowerCase(character));
+            } else if (Character.isUpperCase(character)) {
+                builder.append(Character.toLowerCase(character));
             } else {
                 builder.append(character);
             }
