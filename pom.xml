@@ -37,11 +37,6 @@
             <artifactId>mule-core</artifactId>
             <version>${muleVersion}</version>
         </dependency>
-        <dependency>
-            <groupId>org.mule.tools.devkit</groupId>
-            <artifactId>mule-devkit-annotations</artifactId>
-            <version>${muleDevKitVersion}</version>
-        </dependency>
         <!-- Test dependencies -->
         <dependency>
             <groupId>junit</groupId>
