@@ -29,6 +29,14 @@ public final class Classes {
         return allSuperClasses;
     }
 
+    public static List<Annotation> allAnnotations(final Class<?> clazz) {
+        final List<Annotation> allAnnotations = new LinkedList<Annotation>(Arrays.asList(clazz.getAnnotations()));
+        for (final Class<?> superClass : allSuperClasses(clazz)) {
+            allAnnotations.addAll(Arrays.asList(superClass.getAnnotations()));
+        }
+        return allAnnotations;
+    }
+
     /**
      * @param clazz
      * @return all declared {@link Field} of specified {@link Class} and all super {@link Class}es
@@ -43,12 +51,20 @@ public final class Classes {
 
     /**
      * @param classLoader
+     * @return loaded {@link Class} if any; null otherwise
+     */
+    public static <T> Class<T> loadClass(final String name) {
+        return Classes.loadClass(Thread.currentThread().getContextClassLoader(), name);
+    }
+
+    /**
+     * @param classLoader
      * @param name
      * @return loaded {@link Class} if any; null otherwise
      */
-    public static Class<?> loadClass(final ClassLoader classLoader, final String name) {
+    public static <T> Class<T> loadClass(final ClassLoader classLoader, final String name) {
         try {
-            return classLoader.loadClass(name);
+            return (Class<T>) classLoader.loadClass(name);
         } catch (Exception e) {
             return null;
         }
@@ -76,7 +92,7 @@ public final class Classes {
         final StringBuilder builder = new StringBuilder();
         for (int i = 0; i < methodName.length(); i++) {
             final char character = methodName.charAt(i);
-            if (Character.isUpperCase(character)) {
+            if (i != 0 && Character.isUpperCase(character)) {//If upper case and not first character append '-'
                 builder.append("-").append(Character.toLowerCase(character));
             } else {
                 builder.append(character);
