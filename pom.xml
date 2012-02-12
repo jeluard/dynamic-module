@@ -7,6 +7,8 @@
     <version>0.9.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
+    <name>Dynamic Module</name>
+
     <modules>
         <module>api</module>
         <module>discovery</module>

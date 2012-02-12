@@ -7,8 +7,8 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-
 import java.util.Set;
+
 import org.mule.tools.module.helper.Annotations;
 import org.mule.tools.module.helper.Classes;
 import org.mule.tools.module.helper.Modules;
@@ -23,7 +23,7 @@ public class Loader {
     private static final String TRANSFORMER_CLASS_SUFFIX = "Transformer";
     private static final String PARAMETER_TYPE_FIELD_PREFIX = "_";
     private static final String PARAMETER_TYPE_FIELD_SUFFIX = "Type";
-    private static final Set<String> TECHNICAL_FIELD_NAME = new HashSet<String>(Arrays.asList("username", "password", "securityToken"));
+    private static final Set<String> TECHNICAL_FIELD_NAME = new HashSet<String>(Arrays.asList("username", "password", "securityToken", "accessKey", "secretKey"));
 
     protected final String findMessageProcessorClassName(final Package modulePackage, final String processorName) {
         return modulePackage.getName()+"."+StringUtils.capitalize(processorName)+Loader.MESSAGE_PROCESSOR_CLASS_SUFFIX;

@@ -5,7 +5,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-//TODO Add support for OAuth1 and OAuth2
 public class Module {
 
     /**
