@@ -2,9 +2,9 @@ package org.mule.tools.module.helper;
 
 public final class Modules {
 
-    private final static String CAPABILITY_CLASS_NAME = "org.mule.api.Capability";
-    private final static String CONNECTION_MANAGEMENT_CAPABILITY = "CONNECTION_MANAGEMENT_CAPABLE";
-    private final static String LIFECYCLE_CAPABILITY = "LIFECYCLE_CAPABLE";
+    private static final String CAPABILITY_CLASS_NAME = "org.mule.api.Capability";
+    private static final String CONNECTION_MANAGEMENT_CAPABILITY = "CONNECTION_MANAGEMENT_CAPABLE";
+    private static final String LIFECYCLE_CAPABILITY = "LIFECYCLE_CAPABLE";
     public static final String SOURCE_CALLBACK_CLASS_NAME = "org.mule.api.callback.SourceCallback";
 
     private Modules() {
