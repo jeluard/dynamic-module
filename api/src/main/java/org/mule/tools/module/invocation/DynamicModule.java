@@ -8,8 +8,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.mule.api.MuleContext;
 import org.mule.api.MuleException;
 import org.mule.api.lifecycle.Disposable;
@@ -20,13 +18,13 @@ import org.mule.api.source.MessageSource;
 import org.mule.api.transformer.DataType;
 import org.mule.api.transformer.Transformer;
 import org.mule.api.transformer.TransformerException;
-import org.mule.tools.module.helper.LifeCycles;
-import org.mule.tools.module.helper.Modules;
 import org.mule.tools.module.helper.MuleContexts;
 import org.mule.tools.module.helper.Parameters;
 import org.mule.tools.module.helper.Reflections;
 import org.mule.tools.module.model.Module;
 import org.mule.transformer.types.DataTypeFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DynamicModule implements Disposable {
 
@@ -44,7 +42,7 @@ public class DynamicModule implements Disposable {
 
     }
 
-    private static final Log LOGGER = LogFactory.getLog(DynamicModule.class.getPackage().getName());
+    private static final Logger LOGGER = LoggerFactory.getLogger(DynamicModule.class.getPackage().getName());
 
     private final MuleContext context;
     private final Module module;

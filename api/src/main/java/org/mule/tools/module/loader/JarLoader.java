@@ -9,16 +9,16 @@ import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.mule.tools.module.helper.Classes;
 import org.mule.tools.module.helper.Jars;
 import org.mule.tools.module.helper.Modules;
 import org.mule.tools.module.model.Module;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class JarLoader extends Loader {
 
-    private static final Log LOGGER = LogFactory.getLog(JarLoader.class.getPackage().getName());
+    private static final Logger LOGGER = LoggerFactory.getLogger(JarLoader.class.getPackage().getName());
 
     private static final String MODULE_CLASS_SUFFIX = "Module";
     private static final String CONNECTOR_CLASS_SUFFIX = "Connector";
