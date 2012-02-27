@@ -96,9 +96,9 @@ public class DynamicModule {
         try {
             final MavenRepositoryDiscoverer discoverer = new MavenRepositoryDiscoverer(new File("."), MavenRepositoryDiscoverer.defaultMuleForgeRepositories());
             final List<URL> urls = discoverer.listDependencies(id, version);
-            return new JarLoader().load(urls);
+            return new JarLoader().load(urls).getModule();
         } catch (Exception e) {
-            return new org.mule.tools.module.model.Module("", "", e.getMessage(), Collections.<org.mule.tools.module.model.Module.Parameter>emptyList(), Collections.<org.mule.tools.module.model.Module.Processor>emptyList(), Collections.<org.mule.tools.module.model.Module.Source>emptyList(), Collections.<org.mule.tools.module.model.Module.Transformer>emptyList(), null);
+            return new org.mule.tools.module.model.Module("", "", e.getMessage(), Collections.<org.mule.tools.module.model.Parameter>emptyList(), Collections.<org.mule.tools.module.model.Processor>emptyList(), Collections.<org.mule.tools.module.model.Source>emptyList(), Collections.<org.mule.tools.module.model.Transformer>emptyList(), null);
         }
     }
 

@@ -1,5 +1,6 @@
 package org.mule.tools.module.loader;
 
+import java.lang.Package;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -9,15 +10,12 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import org.mule.tools.module.helper.Annotations;
-import org.mule.tools.module.helper.Classes;
-import org.mule.tools.module.helper.Modules;
-import org.mule.tools.module.helper.Reflections;
-import org.mule.tools.module.model.Module;
+import org.mule.tools.module.helper.*;
+import org.mule.tools.module.model.*;
 import org.mule.util.StringUtils;
 
 public class Loader {
-
+//Add support for friendlyName
     private static final String MESSAGE_PROCESSOR_CLASS_SUFFIX = "MessageProcessor";
     private static final String MESSAGE_SOURCE_CLASS_SUFFIX = "MessageSource";
     private static final String TRANSFORMER_CLASS_SUFFIX = "Transformer";
@@ -53,16 +51,11 @@ public class Loader {
 
         final String name = extractAnnotationName(annotation);
         final String minMuleVersion = extractMinMuleVersion(annotation);
-        final List<Module.Parameter> parameters = listParameters(moduleClass);
-        final List<Module.Processor> processors = listProcessors(modulePackage, moduleClass);
-        final List<Module.Source> sources = listSources(modulePackage, moduleClass);
-        final List<Module.Transformer> transformers = listTransformers(modulePackage, moduleClass);
+        final List<Parameter> parameters = listParameters(moduleClass);
+        final List<Processor> processors = listProcessors(modulePackage, moduleClass);
+        final List<Source> sources = listSources(modulePackage, moduleClass);
+        final List<Transformer> transformers = listTransformers(modulePackage, moduleClass);
         return new Module(name, minMuleVersion, moduleClass.getName(), parameters, processors, sources, transformers, connectionManagerClassName);
-    }
-
-    protected final String extractClassName(final String name) {
-        final String strippedClassName = name.substring(0, name.lastIndexOf("."));
-        return strippedClassName.replace('/', '.');
     }
 
     protected final String extractAnnotationName(final Object annotation) {
@@ -73,13 +66,13 @@ public class Loader {
         return Reflections.invoke(annotation, "minMuleVersion");
     }
     
-    protected final List<Module.Parameter> listParameters(final Class<?> moduleClass) {
-        final List<Module.Parameter> parameters = new LinkedList<Module.Parameter>();
+    protected final List<Parameter> listParameters(final Class<?> moduleClass) {
+        final List<Parameter> parameters = new LinkedList<Parameter>();
         for (final Field field : Classes.allDeclaredFields(moduleClass)) {
             if (Annotations.getAnnotation(field, Annotations.CONFIGURABLE_ANNOTATION_CLASS_NAME) != null) {
                 final boolean optional = Annotations.getAnnotation(field, Annotations.OPTIONAL_ANNOTATION_CLASS_NAME) != null;
                 final String defaultValue = Annotations.getDefaultAnnotationValue(field);
-                parameters.add(new Module.Parameter(field.getName(), field.getType(), optional, defaultValue));
+                parameters.add(new Parameter(field.getName(), field.getType(), optional, defaultValue));
             }
         }
         return parameters;
@@ -91,7 +84,7 @@ public class Loader {
             return annotationName;
         }
 
-        return Classes.methodNameToDashBased(method);
+        return Cases.camelCaseToDashBased(method.getName());
     }
 
     protected final String[] extractMethodParameterNames(final Class<?> generatedClass) {
@@ -127,8 +120,8 @@ public class Loader {
         return parameterTypes.toArray(new Class<?>[parameterTypes.size()]);
     }
 
-    protected final List<Module.Parameter> listMethodParameters(final Class<?> moduleClass, final Method method, final String generatedClassName) {
-        final List<Module.Parameter> parameters = new LinkedList<Module.Parameter>();
+    protected final List<Parameter> listMethodParameters(final Class<?> moduleClass, final Method method, final String generatedClassName) {
+        final List<Parameter> parameters = new LinkedList<Parameter>();
         //Rely on the fact that parameters are added first in generated MessageProcessor/MessageSource.
         //TODO Pretty fragile. Replace with stronger alternative.
         final Class<?> generatedClass = Classes.loadClass(generatedClassName);
@@ -156,42 +149,42 @@ public class Loader {
                 }
             }
 
-            parameters.add(new Module.Parameter(name, type, optional, defaultValue));
+            parameters.add(new Parameter(name, type, optional, defaultValue));
         }
         return parameters;
     }
 
-    protected final List<Module.Processor> listProcessors(final Package modulePackage, final Class<?> moduleClass) {
-        final List<Module.Processor> processors = new LinkedList<Module.Processor>();
+    protected final List<Processor> listProcessors(final Package modulePackage, final Class<?> moduleClass) {
+        final List<Processor> processors = new LinkedList<Processor>();
         for (final Method method : moduleClass.getMethods()) {
             final Object annotation = Annotations.getAnnotation(method, Annotations.PROCESSOR_ANNOTATION_CLASS_NAME);
             if (annotation != null) {
                 final String messageProcessorClassName = findMessageProcessorClassName(modulePackage, method.getName());
-                processors.add(new Module.Processor(extractName(annotation, method), messageProcessorClassName, listMethodParameters(moduleClass, method, messageProcessorClassName), Reflections.<Boolean>invoke(annotation, "intercepting")));
+                processors.add(new Processor(extractName(annotation, method), messageProcessorClassName, listMethodParameters(moduleClass, method, messageProcessorClassName), method.getReturnType().getName(), Reflections.<Boolean>invoke(annotation, "intercepting")));
             }
         }
         return processors;
     }
 
-    protected final List<Module.Source> listSources(final Package modulePackage, final Class<?> moduleClass) {
-        final List<Module.Source> sources = new LinkedList<Module.Source>();
+    protected final List<Source> listSources(final Package modulePackage, final Class<?> moduleClass) {
+        final List<Source> sources = new LinkedList<Source>();
         for (final Method method : moduleClass.getMethods()) {
             final Object annotation = Annotations.getAnnotation(method, Annotations.SOURCE_ANNOTATION_CLASS_NAME);
             if (annotation != null) {
                 final String messageSourceClassName = findMessageSourceClassName(modulePackage, method.getName());
-                sources.add(new Module.Source(extractName(annotation, method), messageSourceClassName, listMethodParameters(moduleClass, method, messageSourceClassName)));
+                sources.add(new Source(extractName(annotation, method), messageSourceClassName, listMethodParameters(moduleClass, method, messageSourceClassName)));
             }
         }
         return sources;
     }
 
-    protected final List<Module.Transformer> listTransformers(final Package modulePackage, final Class<?> moduleClass) {
-        final List<Module.Transformer> transformers = new LinkedList<Module.Transformer>();
+    protected final List<Transformer> listTransformers(final Package modulePackage, final Class<?> moduleClass) {
+        final List<Transformer> transformers = new LinkedList<Transformer>();
         for (final Method method : moduleClass.getMethods()) {
             final Object annotation = Annotations.getAnnotation(method, Annotations.TRANSFORMER_ANNOTATION_CLASS_NAME);
             if (annotation != null) {
                 final String transformerClassName = findTransformerClassName(modulePackage, method.getName());
-                transformers.add(new Module.Transformer(transformerClassName, Reflections.<Integer>invoke(annotation, "priorityWeighting"), Reflections.<Class[]>invoke(annotation, "sourceTypes")));
+                transformers.add(new Transformer(transformerClassName, Reflections.<Integer>invoke(annotation, "priorityWeighting"), Reflections.<Class[]>invoke(annotation, "sourceTypes")));
             }
         }
         return transformers;

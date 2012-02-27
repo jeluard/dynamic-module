@@ -16,6 +16,7 @@ public class Annotations {
     public static final String PROCESSOR_ANNOTATION_CLASS_NAME = "org.mule.api.annotations.Processor";
     public static final String SOURCE_ANNOTATION_CLASS_NAME = "org.mule.api.annotations.Source";
     public static final String TRANSFORMER_ANNOTATION_CLASS_NAME = "org.mule.api.annotations.Transformer";
+    public static final String ICONS_ANNOTATION_CLASS_NAME = "org.mule.api.annotations.display.Icons";
 
     private Annotations() {
     }

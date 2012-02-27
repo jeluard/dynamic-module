@@ -13,9 +13,9 @@ public final class Reflections {
     private Reflections() {
     }
 
-    public static Field setAccessible(final Object object, final String propertyName) {
+    public static Field setAccessible(final Class<?> type, final String propertyName) {
         try {
-            final Field field = object.getClass().getDeclaredField(propertyName);
+            final Field field = type.getDeclaredField(propertyName);
             field.setAccessible(true);
             return field;
         } catch (NoSuchFieldException e) {
@@ -36,16 +36,30 @@ public final class Reflections {
      * @param object
      * @param propertyName
      */
-    public static Object get(final Object object, final String propertyName) {
+    public static <T> T get(final Object object, final String propertyName) {
         try {
             return Reflections.invoke(object, Reflections.getterMethodName(propertyName), void.class);
         } catch (RuntimeException e) {
-            final Field field = Reflections.setAccessible(object, propertyName);
+            final Field field = Reflections.setAccessible(object.getClass(), propertyName);
             try {
-                return field.get(object);
+                return (T) field.get(object);
             } catch(IllegalAccessException ee) {
                 throw new RuntimeException(ee);
             }
+        }
+    }
+
+    /**
+     * Get static value of property for specified object.
+     * @param type
+     * @param propertyName
+     */
+    public static <T> T staticGet(final Class<?> type, final String propertyName) {
+        final Field field = Reflections.setAccessible(type, propertyName);
+        try {
+            return (T) field.get(null);
+        } catch(IllegalAccessException ee) {
+            throw new RuntimeException(ee);
         }
     }
 
@@ -67,7 +81,7 @@ public final class Reflections {
         try {
             Reflections.invoke(object, Reflections.setterMethodName(propertyName), value);
         } catch (RuntimeException e) {
-            final Field field = Reflections.setAccessible(object, propertyName);
+            final Field field = Reflections.setAccessible(object.getClass(), propertyName);
             try {
                 field.set(object, value);
             } catch(IllegalAccessException ee) {
@@ -215,7 +229,7 @@ public final class Reflections {
      * @param argumentType 
      * @return result of dynamic invocation of `method` on `object` with `argument`.
      */
-    public static <T> T invoke(final String clazz, final String method, final Object argument) {
+    public static <T> T staticInvoke(final String clazz, final String method, final Object argument) {
         try {
             return (T) Classes.loadClass(clazz).getMethod(method, argument.getClass()).invoke(null, argument);
         } catch (Exception e) {

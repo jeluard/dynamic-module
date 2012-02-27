@@ -8,11 +8,11 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.maven.repository.internal.DefaultServiceLocator;
 import org.apache.maven.repository.internal.MavenRepositorySystemSession;
 import org.mule.tools.module.discovery.wagon.ManualWagonProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.sonatype.aether.RepositorySystem;
 import org.sonatype.aether.artifact.Artifact;
 import org.sonatype.aether.collection.CollectRequest;
@@ -21,7 +21,6 @@ import org.sonatype.aether.connector.wagon.WagonProvider;
 import org.sonatype.aether.connector.wagon.WagonRepositoryConnectorFactory;
 import org.sonatype.aether.graph.Dependency;
 import org.sonatype.aether.graph.DependencyNode;
-import org.sonatype.aether.graph.Exclusion;
 import org.sonatype.aether.repository.LocalRepository;
 import org.sonatype.aether.repository.RemoteRepository;
 import org.sonatype.aether.resolution.DependencyRequest;
@@ -35,10 +34,10 @@ import org.sonatype.aether.util.graph.PreorderNodeListGenerator;
  */
 public final class MavenRepositoryDiscoverer {
 
-    private static final Log LOGGER = LogFactory.getLog(MavenRepositoryDiscoverer.class.getPackage().getName());
+    private static final Logger LOGGER = LoggerFactory.getLogger(MavenRepositoryDiscoverer.class.getPackage().getName());
 
     private final File localRepository;
-    private static final File DEFAULT_LOCAL_REPOSITORY = new File(System.getProperty("user.home")+"/.m2/repository");
+    public static final File DEFAULT_LOCAL_REPOSITORY = new File(System.getProperty("user.home")+"/.m2/repository");
     private final List<RemoteRepository> repositories;
     private static final String DEFAULT_GROUP_ID = "org.mule.modules";
     private static final String DEFAULT_EXTENSION = "jar";
@@ -61,6 +60,7 @@ public final class MavenRepositoryDiscoverer {
         final List<RemoteRepository> repositories = new LinkedList<RemoteRepository>();
         repositories.add(new RemoteRepository("central", "default", "http://repo1.maven.org/maven2/"));
         repositories.add(new RemoteRepository("muleforge", "default", "http://repository.mulesoft.org/releases/"));
+        repositories.add(new RemoteRepository("muleforge2", "default", "https://repository.mulesoft.org/nexus/content/repositories/releases/"));
         repositories.add(new RemoteRepository("muleforge-snapshots", "default", "http://repository.mulesoft.org/snapshots/"));
         repositories.add(new RemoteRepository("jboss", "default", "http://repository.jboss.org/nexus/content/repositories/"));
         return repositories;

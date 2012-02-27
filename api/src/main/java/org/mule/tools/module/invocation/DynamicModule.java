@@ -22,6 +22,9 @@ import org.mule.tools.module.helper.MuleContexts;
 import org.mule.tools.module.helper.Parameters;
 import org.mule.tools.module.helper.Reflections;
 import org.mule.tools.module.model.Module;
+import org.mule.tools.module.model.Parameter;
+import org.mule.tools.module.model.Processor;
+import org.mule.tools.module.model.Source;
 import org.mule.transformer.types.DataTypeFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -115,12 +118,12 @@ public class DynamicModule implements Disposable {
          */
     }
 
-    protected final void validateParameterTypeCorrectness(final List<Module.Parameter> defaultParameters, final Map<String, Object> overriddenParameters) {
+    protected final void validateParameterTypeCorrectness(final List<Parameter> defaultParameters, final Map<String, Object> overriddenParameters) {
         final List<String> incorrectParameterTypes = new LinkedList<String>();
         //Ensure all overridden parameter types are correct.
         for (final Map.Entry<String, Object> entry : overriddenParameters.entrySet()) {
             final String parameterName = entry.getKey();
-            final Module.Parameter parameter = Parameters.getParameter(defaultParameters, parameterName);
+            final Parameter parameter = Parameters.getParameter(defaultParameters, parameterName);
             if (parameter == null) {
                 continue;
             }
@@ -139,10 +142,10 @@ public class DynamicModule implements Disposable {
         }
     }
 
-    protected final void ensureNoMissingParameters(final List<Module.Parameter> defaultParameters, final Map<String, Object> overriddenParameters) {
+    protected final void ensureNoMissingParameters(final List<Parameter> defaultParameters, final Map<String, Object> overriddenParameters) {
         final List<String> missingMandatoryParameters = new LinkedList<String>();
         //Ensure all mandatory parameter values are provided.
-        for (final Module.Parameter parameter : defaultParameters) {
+        for (final Parameter parameter : defaultParameters) {
             if (!parameter.isOptional() && parameter.getDefaultValue() == null
                 && !overriddenParameters.containsKey(parameter.getName())) {
                 missingMandatoryParameters.add(parameter.getName());
@@ -159,10 +162,10 @@ public class DynamicModule implements Disposable {
      * Overridden parameters take precedence over default ones.
      * @return 
      */
-    protected final Map<String, Object> allParameters(final List<Module.Parameter> defaultParameters, final Map<String, Object> overriddenParameters) {
+    protected final Map<String, Object> allParameters(final List<Parameter> defaultParameters, final Map<String, Object> overriddenParameters) {
         final Map<String, Object> allParameters = new HashMap<String, Object>();
         final Set<String> defaultParameterNames = new HashSet<String>();
-        for (final Module.Parameter parameter : defaultParameters) {
+        for (final Parameter parameter : defaultParameters) {
             //Only add default values
             if (parameter.getDefaultValue() != null) {
                 try {
@@ -195,8 +198,8 @@ public class DynamicModule implements Disposable {
      * @param processorName
      * @return {@link Module.Processor} extracted from {@link Module$Processor}with specified name, null otherwise
      */
-    protected final Module.Processor findProcessor(final String processorName) {
-        for (final Module.Processor processor : this.module.getProcessors()) {
+    protected final Processor findProcessor(final String processorName) {
+        for (final Processor processor : this.module.getProcessors()) {
             if (processorName.equals(processor.getName())) {
                 return processor;
             }
@@ -239,7 +242,7 @@ public class DynamicModule implements Disposable {
             throw new IllegalArgumentException("null overriddenParameters");
         }
 
-        final Module.Processor processor = findProcessor(processorName);
+        final Processor processor = findProcessor(processorName);
         if (processor == null) {
             throw new IllegalArgumentException("Cannot find a Processor named <"+processorName+">");
         }
@@ -258,8 +261,8 @@ public class DynamicModule implements Disposable {
      * @param sourceName
      * @return {@link Module.Source} extracted from {@link Module$Source}with specified name, null otherwise
      */
-    protected final Module.Source findSource(final String sourceName) {
-        for (final Module.Source source : this.module.getSources()) {
+    protected final Source findSource(final String sourceName) {
+        for (final Source source : this.module.getSources()) {
             if (sourceName.equals(source.getName())) {
                 return source;
             }
@@ -306,7 +309,7 @@ public class DynamicModule implements Disposable {
             throw new IllegalArgumentException("null overriddenParameters");
         }
 
-        final Module.Source source = findSource(sourceName);
+        final Source source = findSource(sourceName);
         if (source == null) {
             throw new IllegalArgumentException("Cannot find a Source named <"+sourceName+">");
         }
@@ -333,7 +336,7 @@ public class DynamicModule implements Disposable {
             throw new IllegalArgumentException("null sourceName");
         }
 
-        final Module.Source source = findSource(sourceName);
+        final Source source = findSource(sourceName);
         if (source == null) {
             throw new IllegalArgumentException("Cannot find a Source named <"+sourceName+">");
         }

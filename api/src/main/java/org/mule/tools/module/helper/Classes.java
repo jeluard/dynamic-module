@@ -84,26 +84,6 @@ public final class Classes {
     }
 
     /**
-     * @param method
-     * @return dash-based representation of a {@link Method#getName()}. e.g. getMyProperty => get-my-property
-     */
-    public static String methodNameToDashBased(final Method method) {
-        final String methodName = method.getName();
-        final StringBuilder builder = new StringBuilder();
-        for (int i = 0; i < methodName.length(); i++) {
-            final char character = methodName.charAt(i);
-            if (i != 0 && Character.isUpperCase(character)) {//If upper case and not first character append '-'
-                builder.append("-").append(Character.toLowerCase(character));
-            } else if (Character.isUpperCase(character)) {
-                builder.append(Character.toLowerCase(character));
-            } else {
-                builder.append(character);
-            }
-        }
-        return builder.toString();
-    }
-
-    /**
      * @param <T>
      * @param clazz
      * @param annotationClass

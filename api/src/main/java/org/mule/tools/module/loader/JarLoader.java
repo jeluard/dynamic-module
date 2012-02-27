@@ -1,22 +1,21 @@
 package org.mule.tools.module.loader;
 
+import java.io.File;
 import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
+import javax.annotation.Nullable;
 
-import org.mule.tools.module.helper.Classes;
-import org.mule.tools.module.helper.Jars;
-import org.mule.tools.module.helper.Modules;
+import org.mule.tools.module.helper.*;
+import org.mule.tools.module.model.Metadata;
 import org.mule.tools.module.model.Module;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.w3c.dom.Document;
 
-public class JarLoader extends Loader {
+public class JarLoader {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(JarLoader.class.getPackage().getName());
 
@@ -50,6 +49,11 @@ public class JarLoader extends Loader {
             }
         }
         return false;
+    }
+
+    protected final String extractClassName(final String name) {
+        final String strippedClassName = name.substring(0, name.lastIndexOf("."));
+        return strippedClassName.replace('/', '.');
     }
 
     /**
@@ -131,12 +135,35 @@ public class JarLoader extends Loader {
         return subClasses;
     }
 
+    protected final Metadata extractMetadata(final Repository repository, final Class<?> moduleType, final Module module) {
+        final Map<Metadata.Icon, URL> icons = new EnumMap<Metadata.Icon, URL>(Metadata.Icon.class);
+        for (final Metadata.Icon icon : Metadata.Icon.values()) {
+            populateIcon(icons, icon, repository, moduleType, module);
+        }
+        return new Metadata(repository.getHomePage(), icons);
+    }
+
+    protected final void populateIcon(final Map<Metadata.Icon, URL> icons, final Metadata.Icon icon, final Repository repository, final Class<?> moduleType, final Module module) {
+        final Object annotation = Annotations.getAnnotation(moduleType, Annotations.ICONS_ANNOTATION_CLASS_NAME);
+        final String path;
+        if (annotation != null) {
+            path = Reflections.invoke(annotation, Cases.constantToCamelCase(icon.name()));
+        } else {
+            path = Reflections.staticGet(Classes.loadClass(Annotations.ICONS_ANNOTATION_CLASS_NAME), "GENERIC_"+icon.name());
+        }
+        final String finalPath = String.format(path, module.getName());
+        final URL url = repository.getIconLocation(finalPath);
+        if (url != null) {
+            icons.put(icon, url);
+        }
+    }
+
     /**
      * @param urls
      * @return a {@link Module} representation of first module found in specified `urls`
      * @throws IOException 
      */
-    public final Module load(final List<URL> urls) throws IOException {
+    public final org.mule.tools.module.model.Package load(final List<URL> urls) throws IOException {
         final URL moduleJar = urls.get(0);
         final List<String> allFileNames = Jars.allFileNames(moduleJar);
         final ClassLoader classLoader = new URLClassLoader(urls.toArray(new URL[urls.size()]));
@@ -158,14 +185,43 @@ public class JarLoader extends Loader {
             }
 
             final Class<?> mostSpecificSubClass = findMostSpecificSubClass(moduleSubClasses);
-            final Object module = Classes.newInstance(mostSpecificSubClass);
-            if (module == null) {
+            final Object moduleObject = Classes.newInstance(mostSpecificSubClass);
+            if (moduleObject == null) {
                 throw new IllegalArgumentException("Failed to instantiate Module class <"+moduleClass.getSimpleName()+">");
             }
-            return load(mostSpecificSubClass, extractConnectionManagerClassName(mostSpecificSubClass.getPackage().getName(), moduleClass.getSimpleName(), module));
+            final Loader loader = new Loader();
+            final Module module = loader.load(mostSpecificSubClass, extractConnectionManagerClassName(mostSpecificSubClass.getPackage().getName(), moduleClass.getSimpleName(), moduleObject));
+            final Metadata metadata;
+            try {
+                final File pom = Jars.load(moduleJar, "META-INF/maven/.*/pom.xml");
+                try {
+                    final Document document = XML.load(pom);
+                    final List<String> scmUrls = XML.extract(document, "/project/scm/url");
+                    if (!urls.isEmpty()) {
+                        final String scmUrl = scmUrls.get(0);
+                        final Repository repository = getRepository(scmUrl);
+                        metadata = repository != null ? extractMetadata(repository, mostSpecificSubClass, module) : null;
+                    } else {
+                        metadata = null;
+                    }
+                } finally {
+                    pom.delete();
+                }
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+            return new org.mule.tools.module.model.Package(module, metadata);
         } finally {
             Thread.currentThread().setContextClassLoader(currentClassLoader);
         }
+    }
+
+    @Nullable
+    protected final Repository getRepository(final String url) throws IOException {
+        if (true) {
+            return new GithubRepository(url);
+        }
+        return null;
     }
 
 }

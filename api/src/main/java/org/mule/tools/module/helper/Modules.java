@@ -11,7 +11,7 @@ public final class Modules {
     }
 
     private static Object capability(final String name) {
-        return Reflections.invoke(Modules.CAPABILITY_CLASS_NAME, "valueOf", name);
+        return Reflections.staticInvoke(Modules.CAPABILITY_CLASS_NAME, "valueOf", name);
     }
 
     private static boolean isCapableOf(final Object module, final Object capability) {
