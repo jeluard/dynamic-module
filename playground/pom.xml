@@ -68,7 +68,7 @@
       <plugin>
         <groupId>com.github.jeluard.ion.plugins</groupId>
         <artifactId>ion-maven-plugin</artifactId>
-        <version>0.11</version>
+        <version>1.0</version>
         <configuration>
           <domain>${ion.domain}</domain>
           <username>${ion.username}</username>
