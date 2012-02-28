@@ -3,10 +3,12 @@ package org.mule.tools.module.model;
 import com.google.common.base.Preconditions;
 
 import java.util.Arrays;
+import javax.annotation.concurrent.Immutable;
 
 /**
- * @see {@link org.mule.api.annotations.Transformer}
+ * Model for {@link org.mule.api.annotations.Transformer}.
  */
+@Immutable
 public class Transformer {
 
     private final String type;

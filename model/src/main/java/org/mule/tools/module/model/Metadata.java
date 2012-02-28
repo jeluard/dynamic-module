@@ -1,5 +1,7 @@
 package org.mule.tools.module.model;
 
+import com.google.common.base.Preconditions;
+
 import java.net.URL;
 import java.util.Collections;
 import java.util.EnumMap;
@@ -20,12 +22,8 @@ public class Metadata {
     private final Map<Icon, URL> icons;
 
     public Metadata(final URL homepage, final Map<Icon, URL> icons) {
-        if (homepage == null) {
-            throw new IllegalArgumentException("null homepage");
-        }
-        if (icons == null) {
-            throw new IllegalArgumentException("null icons");
-        }
+        Preconditions.checkNotNull(homepage, "null homepage");
+        Preconditions.checkNotNull(icons, "null icons");
 
         this.homepage = homepage;
         this.icons = Collections.unmodifiableMap(new EnumMap<Icon, URL>(icons));

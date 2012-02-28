@@ -10,8 +10,10 @@
     <name>Dynamic Module</name>
 
     <modules>
-        <module>api</module>
+        <module>model</module>
         <module>discovery</module>
+        <module>introspection</module>
+        <module>invocation</module>
         <module>module</module>
         <module>playground</module>
     </modules>

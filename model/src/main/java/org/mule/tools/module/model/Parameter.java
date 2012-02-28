@@ -1,6 +1,11 @@
 package org.mule.tools.module.model;
 
+import com.google.common.base.Preconditions;
+import javax.annotation.Nullable;
+
 /**
+ * Model for {@link Processor} and {@link Module} parameter.
+ *
  * @see {@link org.mule.api.annotations.param.Default}
  * @see {@link org.mule.api.annotations.param.Optional}
  */
@@ -11,13 +16,9 @@ public class Parameter {
     private final boolean optional;
     private final String defaultValue;
 
-    public Parameter(final String name, final Class<?> type, final boolean optional, final String defaultValue) {
-        if (name == null) {
-            throw new IllegalArgumentException("null name");
-        }
-        if (type == null) {
-            throw new IllegalArgumentException("null type");
-        }
+    public Parameter(final String name, final Class<?> type, final boolean optional, @Nullable final String defaultValue) {
+        Preconditions.checkNotNull(name, "null name");
+        Preconditions.checkNotNull(type, "null type");
 
         this.name = name;
         this.type = type;
@@ -37,6 +38,7 @@ public class Parameter {
         return this.optional;
     }
 
+    @Nullable
     public final String getDefaultValue() {
         return this.defaultValue;
     }

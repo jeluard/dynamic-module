@@ -62,6 +62,10 @@ public class Loader {
         return Reflections.invoke(annotation, "name");
     }
 
+    protected final String extractAnnotationFriendlyName(final Object annotation) {
+        return Reflections.invoke(annotation, "friendlyName");
+    }
+
     protected final String extractMinMuleVersion(final Object annotation) {
         return Reflections.invoke(annotation, "minMuleVersion");
     }
@@ -160,7 +164,7 @@ public class Loader {
             final Object annotation = Annotations.getAnnotation(method, Annotations.PROCESSOR_ANNOTATION_CLASS_NAME);
             if (annotation != null) {
                 final String messageProcessorClassName = findMessageProcessorClassName(modulePackage, method.getName());
-                processors.add(new Processor(extractName(annotation, method), messageProcessorClassName, listMethodParameters(moduleClass, method, messageProcessorClassName), method.getReturnType().getName(), Reflections.<Boolean>invoke(annotation, "intercepting")));
+                processors.add(new Processor(extractName(annotation, method), extractAnnotationFriendlyName(annotation), messageProcessorClassName, listMethodParameters(moduleClass, method, messageProcessorClassName), method.getReturnType().getName(), Reflections.<Boolean>invoke(annotation, "intercepting")));
             }
         }
         return processors;
@@ -172,7 +176,7 @@ public class Loader {
             final Object annotation = Annotations.getAnnotation(method, Annotations.SOURCE_ANNOTATION_CLASS_NAME);
             if (annotation != null) {
                 final String messageSourceClassName = findMessageSourceClassName(modulePackage, method.getName());
-                sources.add(new Source(extractName(annotation, method), messageSourceClassName, listMethodParameters(moduleClass, method, messageSourceClassName)));
+                sources.add(new Source(extractName(annotation, method), extractAnnotationFriendlyName(annotation), messageSourceClassName, listMethodParameters(moduleClass, method, messageSourceClassName)));
             }
         }
         return sources;

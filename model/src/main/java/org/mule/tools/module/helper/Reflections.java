@@ -3,8 +3,6 @@ package org.mule.tools.module.helper;
 import java.lang.reflect.Field;
 import java.util.Map;
 
-import org.mule.util.StringUtils;
-
 /**
  * Helper methods for reflection.
  */
@@ -28,7 +26,7 @@ public final class Reflections {
      * @return default getter name for specified property
      */
     public static String getterMethodName(final String propertyName) {
-        return "get"+StringUtils.capitalize(propertyName);
+        return "get"+Strings.capitalize(propertyName);
     }
 
     /**
@@ -68,7 +66,7 @@ public final class Reflections {
      * @return default setter name for specified property
      */
     public static String setterMethodName(final String propertyName) {
-        return "set"+StringUtils.capitalize(propertyName);
+        return "set"+Strings.capitalize(propertyName);
     }
 
     /**
