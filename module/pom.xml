@@ -1,158 +1,156 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>org.mule.tools.modules.dynamic-module</groupId>
+    <artifactId>parent</artifactId>
+    <version>0.9.1-SNAPSHOT</version>
+    <relativePath>../pom.xml</relativePath>
+  </parent>
+  <modelVersion>4.0.0</modelVersion>
+  <artifactId>module</artifactId>
+  <packaging>mule-module</packaging>
 
-    <artifactId>module</artifactId>
-    <packaging>mule-module</packaging>
+  <dependencies>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>model</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>discovery</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>introspection</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>invocation</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.mule.tools.devkit</groupId>
+      <artifactId>mule-devkit-annotations</artifactId>
+      <version>${muleDevKitVersion}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.mule.modules</groupId>
+      <artifactId>mule-module-spring-config</artifactId>
+      <version>${muleVersion}</version>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.mule.tests</groupId>
+      <artifactId>mule-tests-functional</artifactId>
+      <version>${muleVersion}</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
 
-    <parent>
-        <groupId>org.mule.tools.modules.dynamic-module</groupId>
-        <artifactId>parent</artifactId>
-        <version>0.9.1-SNAPSHOT</version>
-        <relativePath>../pom.xml</relativePath>
-    </parent>
-
-    <dependencies>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>model</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>discovery</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>introspection</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>invocation</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
+  <build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.mule.tools.devkit</groupId>
+          <artifactId>mule-devkit-maven-plugin</artifactId>
+          <version>${muleDevKitVersion}</version>
+          <extensions>true</extensions>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+    <plugins>
+      <plugin>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>2.3.2</version>
+        <executions>
+          <execution>
+            <id>default-compile</id>
+            <configuration>
+              <compilerArgument>-proc:none</compilerArgument>
+              <source>1.6</source>
+              <target>1.6</target>
+            </configuration>
+          </execution>
+          <execution>
+            <id>default-testCompile</id>
+            <configuration>
+              <compilerArgument>-proc:none</compilerArgument>
+              <source>1.6</source>
+              <target>1.6</target>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.mule.tools.devkit</groupId>
+        <artifactId>mule-devkit-maven-plugin</artifactId>
+        <version>${muleDevKitVersion}</version>
+      </plugin>
+      <plugin>
+        <artifactId>maven-source-plugin</artifactId>
+        <version>2.1.2</version>
+        <executions>
+          <execution>
+            <id>attach-sources</id>
+            <goals>
+              <goal>jar</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <version>2.8</version>
+        <executions>
+          <execution>
+            <id>attach-javadocs</id>
+            <goals>
+              <goal>jar</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <docletArtifact>
             <groupId>org.mule.tools.devkit</groupId>
-            <artifactId>mule-devkit-annotations</artifactId>
-            <version>${muleDevKitVersion}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.mule.modules</groupId>
-            <artifactId>mule-module-spring-config</artifactId>
-            <version>${muleVersion}</version>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>org.mule.tests</groupId>
-            <artifactId>mule-tests-functional</artifactId>
-            <version>${muleVersion}</version>
-            <scope>test</scope>
-        </dependency>
-    </dependencies>
-
-    <build>
-        <pluginManagement>
-            <plugins>
-                <plugin>
-                    <groupId>org.mule.tools.devkit</groupId>
-                    <artifactId>mule-devkit-maven-plugin</artifactId>
-                    <version>${muleDevKitVersion}</version>
-                    <extensions>true</extensions>
-                </plugin>
-            </plugins>
-        </pluginManagement>
-        <plugins>
-            <plugin>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>2.3.2</version>
-                <executions>
-                    <execution>
-                        <id>default-compile</id>
-                        <configuration>
-                            <compilerArgument>-proc:none</compilerArgument>
-                            <source>1.6</source>
-                            <target>1.6</target>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>default-testCompile</id>
-                        <configuration>
-                            <compilerArgument>-proc:none</compilerArgument>
-                            <source>1.6</source>
-                            <target>1.6</target>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.mule.tools.devkit</groupId>
-                <artifactId>mule-devkit-maven-plugin</artifactId>
-                <version>${muleDevKitVersion}</version>
-            </plugin>
-            <plugin>
-                <artifactId>maven-source-plugin</artifactId>
-                <version>2.1.2</version>
-                <executions>
-                    <execution>
-                        <id>attach-sources</id>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <artifactId>maven-javadoc-plugin</artifactId>
-                <version>2.8</version>
-                <executions>
-                    <execution>
-                        <id>attach-javadocs</id>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <docletArtifact>
-                        <groupId>org.mule.tools.devkit</groupId>
-                        <artifactId>mule-devkit-doclet</artifactId>
-                        <version>3.0.1</version>
-                    </docletArtifact>
-                    <doclet>org.mule.devkit.doclet.Doclava</doclet>
-                    <bootclasspath>${sun.boot.class.path}</bootclasspath>
-                    <additionalparam>
-                        -quiet
-                        -federate JDK http://download.oracle.com/javase/6/docs/api/index.html?
-                        -federationxml JDK http://doclava.googlecode.com/svn/static/api/openjdk-6.xml
-						-hdf project.artifactId "${project.artifactId}"
-						-hdf project.groupId "${project.groupId}"
-						-hdf project.version "${project.version}"
-                        -hdf project.name "${project.name}"
-						-hdf project.repo.name "${project.distributionManagement.repository.name}"
-						-hdf project.repo.id "${project.distributionManagement.repository.id}"
-						-hdf project.repo.url "${project.distributionManagement.repository.url}"
-						-hdf project.snapshotRepo.name "${project.distributionManagement.snapshotRepository.name}"
-						-hdf project.snapshotRepo.id "${project.distributionManagement.snapshotRepository.id}"
-						-hdf project.snapshotRepo.url "${project.distributionManagement.snapshotRepository.url}"
-                        -d ${project.build.directory}/apidocs
-                    </additionalparam>
-                    <useStandardDocletOptions>false</useStandardDocletOptions>
-                    <additionalJOption>-J-Xmx1024m</additionalJOption>
-                </configuration>
-            </plugin>
-        </plugins>
-        <resources>
-            <resource>
-                <filtering>false</filtering>
-                <directory>src/main/resources</directory>
-            </resource>
-            <resource>
-                <filtering>true</filtering>
-                <directory>src/test/resources</directory>
-            </resource>
-        </resources>
-    </build>
+            <artifactId>mule-devkit-doclet</artifactId>
+            <version>3.0.1</version>
+          </docletArtifact>
+          <doclet>org.mule.devkit.doclet.Doclava</doclet>
+          <bootclasspath>${sun.boot.class.path}</bootclasspath>
+          <additionalparam>
+                -quiet
+                -federate JDK http://download.oracle.com/javase/6/docs/api/index.html?
+                -federationxml JDK http://doclava.googlecode.com/svn/static/api/openjdk-6.xml
+		-hdf project.artifactId "${project.artifactId}"
+	        -hdf project.groupId "${project.groupId}"
+		-hdf project.version "${project.version}"
+                -hdf project.name "${project.name}"
+		-hdf project.repo.name "${project.distributionManagement.repository.name}"
+		-hdf project.repo.id "${project.distributionManagement.repository.id}"
+		-hdf project.repo.url "${project.distributionManagement.repository.url}"
+		-hdf project.snapshotRepo.name "${project.distributionManagement.snapshotRepository.name}"
+		-hdf project.snapshotRepo.id "${project.distributionManagement.snapshotRepository.id}"
+        	-hdf project.snapshotRepo.url "${project.distributionManagement.snapshotRepository.url}"
+                -d ${project.build.directory}/apidocs
+          </additionalparam>
+          <useStandardDocletOptions>false</useStandardDocletOptions>
+          <additionalJOption>-J-Xmx1024m</additionalJOption>
+        </configuration>
+      </plugin>
+    </plugins>
+    <resources>
+      <resource>
+        <filtering>false</filtering>
+        <directory>src/main/resources</directory>
+      </resource>
+      <resource>
+        <filtering>true</filtering>
+        <directory>src/test/resources</directory>
+      </resource>
+    </resources>
+  </build>
 
 </project>
