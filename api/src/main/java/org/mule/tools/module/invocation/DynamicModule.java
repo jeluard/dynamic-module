@@ -14,6 +14,7 @@ import org.mule.api.Capabilities;
 import org.mule.api.Capability;
 import org.mule.api.MuleContext;
 import org.mule.api.MuleException;
+import org.mule.api.MuleMessage;
 import org.mule.api.lifecycle.Disposable;
 import org.mule.api.lifecycle.InitialisationException;
 import org.mule.api.processor.MessageProcessor;
@@ -33,15 +34,14 @@ public class DynamicModule implements Disposable {
 
     /**
      * Encapsulate logic dealing with event received from a {@link Source}.
-     * @param <T> 
      */
-    public interface Listener<T> {
+    public interface Listener {
 
         /**
          * Called every time associated {@link Source} fires an event.
-         * @param event 
+         * @param message 
          */
-        void onEvent(T event);
+        void onEvent(MuleMessage event);
 
     }
 

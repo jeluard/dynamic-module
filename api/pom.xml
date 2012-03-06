@@ -8,7 +8,7 @@
     <parent>
         <groupId>org.mule.tools.modules.dynamic-module</groupId>
         <artifactId>parent</artifactId>
-        <version>0.9.0</version>
+        <version>0.9.1-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 

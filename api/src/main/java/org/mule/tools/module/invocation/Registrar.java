@@ -17,9 +17,9 @@ public class Registrar implements Stoppable {
 
     private static class ListenerWrapper<T> implements MessageProcessor {
 
-        private final DynamicModule.Listener<T> listener;
+        private final DynamicModule.Listener listener;
 
-        private ListenerWrapper(final DynamicModule.Listener<T> listener) {
+        private ListenerWrapper(final DynamicModule.Listener listener) {
             if (listener == null) {
                 throw new IllegalArgumentException("null listener");
             }
@@ -29,7 +29,7 @@ public class Registrar implements Stoppable {
 
         @Override
         public final MuleEvent process(final MuleEvent event) throws MuleException {
-            this.listener.onEvent((T) event.getMessage().getPayload());
+            this.listener.onEvent(event.getMessage());
             return event;
         }
 
@@ -62,7 +62,7 @@ public class Registrar implements Stoppable {
         LifeCycles.initialise(this.messageSource);
     }
 
-    public final void start(final Map<String, Object> sourceParameters, final DynamicModule.Listener<?> listener) throws MuleException {
+    public final void start(final Map<String, Object> sourceParameters, final DynamicModule.Listener listener) throws MuleException {
         Reflections.set(this.messageSource, sourceParameters);
 
         this.messageSource.setListener(new ListenerWrapper(listener));
