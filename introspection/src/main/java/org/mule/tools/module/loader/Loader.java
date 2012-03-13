@@ -18,6 +18,7 @@
 
 package org.mule.tools.module.loader;
 
+import com.google.common.base.CaseFormat;
 import java.lang.Package;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
@@ -106,7 +107,7 @@ public class Loader {
             return annotationName;
         }
 
-        return Cases.camelCaseToDashBased(method.getName());
+        return CaseFormat.LOWER_CAMEL.to(CaseFormat.LOWER_HYPHEN, method.getName());
     }
 
     protected final String[] extractMethodParameterNames(final Class<?> generatedClass) {

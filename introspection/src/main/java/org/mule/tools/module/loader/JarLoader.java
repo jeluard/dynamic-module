@@ -18,6 +18,7 @@
 
 package org.mule.tools.module.loader;
 
+import com.google.common.base.CaseFormat;
 import java.io.File;
 import java.io.IOException;
 import java.lang.annotation.Annotation;
@@ -165,7 +166,7 @@ public class JarLoader {
         final Object annotation = Annotations.getAnnotation(moduleType, Annotations.ICONS_ANNOTATION_CLASS_NAME);
         final String path;
         if (annotation != null) {
-            path = Reflections.invoke(annotation, Cases.constantToCamelCase(icon.name()));
+            path = Reflections.invoke(annotation, CaseFormat.UPPER_UNDERSCORE.to(CaseFormat.LOWER_CAMEL, icon.name()));
         } else {
             path = Reflections.staticGet(Classes.loadClass(Annotations.ICONS_ANNOTATION_CLASS_NAME), "GENERIC_"+icon.name());
         }
