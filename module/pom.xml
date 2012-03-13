@@ -3,7 +3,7 @@
   <parent>
     <groupId>org.mule.tools.modules.dynamic-module</groupId>
     <artifactId>parent</artifactId>
-    <version>0.9.1-SNAPSHOT</version>
+    <version>1.0.0-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
   <modelVersion>4.0.0</modelVersion>
@@ -87,7 +87,6 @@
       <plugin>
         <groupId>org.mule.tools.devkit</groupId>
         <artifactId>mule-devkit-maven-plugin</artifactId>
-        <version>${muleDevKitVersion}</version>
       </plugin>
       <plugin>
         <artifactId>maven-source-plugin</artifactId>

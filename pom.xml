@@ -4,7 +4,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.mule.tools.modules.dynamic-module</groupId>
   <artifactId>parent</artifactId>
-  <version>0.9.1-SNAPSHOT</version>
+  <version>1.0.0-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <name>Dynamic Module</name>
@@ -100,8 +100,9 @@
         <artifactId>maven-license-plugin</artifactId>
         <version>1.8.0</version>
         <configuration>
+		<inherit>false</inherit><!--TODO only enable at top level -->
           <header>LICENSE</header>
-          <failIfMissing>true</failIfMissing>
+          <failIfMissing>false</failIfMissing>
           <aggregate>true</aggregate>
           <strictCheck>true</strictCheck>
           <excludes>
