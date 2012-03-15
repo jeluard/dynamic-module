@@ -1,0 +1,54 @@
+<div id="toolbar" class="subnav">
+  <ul class="nav nav-pills">
+    <li><a href="#overview">Overview</a></li>
+    {{#if parameters}}
+    <li class="dropdown">
+      <a class="dropdown-toggle" data-toggle="dropdown">Parameters<b class="caret"></b></a>
+      <ul class="dropdown-menu">
+        <li><a href="#parameters">all</a></li>
+        <li class="divider"></li>
+        {{#parameters}}
+        <li><a href="#parameter-{{name}}">{{name}}</a></li>
+        {{/parameters}}
+      </ul>
+    </li>
+    {{/if}}
+    {{#if processors}}
+    <li class="dropdown">
+      <a class="dropdown-toggle" data-toggle="dropdown">Processors<b class="caret"></b></a>
+      <ul class="dropdown-menu">
+        <li><a href="#processors">all</a></li>
+        <li class="divider"></li>
+        {{#processors}}
+        <li><a href="#processor-{{name}}">{{name}}</a></li>
+        {{/processors}}
+      </ul>
+    </li>
+    {{/if}}
+    {{#if sources}}
+    <li class="dropdown">
+      <a class="dropdown-toggle" data-toggle="dropdown">Sources<b class="caret"></b></a>
+      <ul class="dropdown-menu">
+        <li><a href="#sources">all</a></li>
+        <li class="divider"></li>
+        {{#sources}}
+        <li><a href="#source-{{name}}">{{name}}</a></li>
+        {{/sources}}
+      </ul>
+    </li>
+    {{/if}}
+    {{#if transformers}}
+    <li class="dropdown">
+      <a class="dropdown-toggle" data-toggle="dropdown">Transformers<b class="caret"></b></a>
+      <ul class="dropdown-menu">
+        <li><a href="#transformers">all</a></li>
+        <li class="divider"></li>
+        {{#transformers}}
+        <li><a href="#transformer-{{type}}">{{type}}</a></li>
+        {{/transformers}}
+      </ul>
+    </li>
+    {{/if}}
+  </ul>
+</div>
+<script>$('#toolbar').scrollspy({target: '#details'});</script>

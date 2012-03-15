@@ -1,0 +1,101 @@
+<div id="details">
+  <div id="overview">
+    <div><span class="label notice">Name</span><span class="value">{{name}}</span></div>
+    <div><span class="label notice">Minimum Mule Version</span><span class="value">{{minMuleVersion}}</span></div>
+    <div><span class="label">Type</span><span class="value">{{type}}</span></div>
+  </div>
+  {{#if parameters}}
+  <div id="parameters">
+    <span class="label notice">Parameters</span>
+    <table class="table table-bordered table-striped"><thead><tr><th>Name</th><th>Type</th><th>Optional</th><th>Default Value</th></tr></thead>
+      <tbody>
+        {{#parameters}}
+        <tr id="parameter-{{name}}">
+          <td>{{name}}</td>
+          <td>{{type}}</td>
+          <td>{{optional}}</td>
+          <td>{{defaultValue}}</td>
+        </tr>
+        {{/parameters}}
+      </tbody>
+    </table>
+  </div>
+  {{/if}}
+  {{#if processors}}
+  <div id="processors">
+    <span class="label notice">Processors</span>
+    <table class="table table-bordered table-striped"><thead><tr><th>Name</th><th>Parameters</th><th>Intercepting</th></tr></thead>
+      <tbody>
+        {{#processors}}
+        <tr id="processor-{{name}}">
+          <td>{{name}}</td>
+          <td>
+            {{#if parameters}}
+            <table class="table table-striped table-condensed"><thead><tr><th>Name</th><th>Type</th><th>Optional</th><th>Default Value</th></tr></thead>
+              <tbody>
+                {{#parameters}}
+                <tr>
+                  <td>{{name}}</td>
+                  <td>{{type}}</td>
+                  <td>{{optional}}</td>
+                  <td>{{defaultValue}}</td>
+                </tr>
+                {{/parameters}}
+              </tbody>
+            </table>
+            {{/if}}
+          </td>
+          <td>{{intercepting}}</td>
+        </tr>
+        {{/processors}}
+      </tbody>
+    </table>
+  </div>
+  {{/if}}
+  {{#if sources}}
+  <div id="sources">
+    <span class="label notice">Sources</span>
+    <table class="table table-bordered table-striped"><thead><tr><th>Name</th><th>Parameters</th></tr></thead>
+      <tbody>
+        {{#sources}}
+        <tr id="source-{{name}}">
+          <td>{{name}}</td>
+          <td>
+            {{#if parameters}}
+            <table class="table table-striped table-condensed"><thead><tr><th>Name</th><th>Type</th><th>Optional</th><th>Default Value</th></tr></thead>
+              <tbody>
+                {{#parameters}}
+                <tr>
+                  <td>{{name}}</td>
+                  <td>{{type}}</td>
+                  <td>{{optional}}</td>
+                  <td>{{defaultValue}}</td>
+                </tr>
+                {{/parameters}}
+              </tbody>
+            </table>
+            {{/if}}
+          </td>
+        </tr>
+        {{/sources}}
+      </tbody>
+    </table>
+  </div>
+  {{/if}}
+  {{#if transformers}}
+  <div id="transformers">
+    <span class="label notice">Transformers</span>
+    <table class="table table-bordered table-striped"><thead><tr><th>Type</th><th>Priority Weighting</th><th>Source Types</th></tr></thead>
+      <tbody>
+        {{#transformers}}
+        <tr id="transformer-{{type}}">
+          <td>{{type}}</td>
+          <td>{{priorityWeighting}}</td>
+          <td>{{sourceTypes}}</td>
+        </tr>
+        {{/transformers}}
+      </tbody>
+    </table>
+  </div>
+  {{/if}}
+</div>
