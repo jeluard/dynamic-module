@@ -18,6 +18,8 @@
 
 package org.mule.tools.module.invocation;
 
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -27,6 +29,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.mule.api.MuleContext;
+import org.mule.api.MuleEvent;
 import org.mule.api.MuleException;
 import org.mule.api.lifecycle.Disposable;
 import org.mule.api.lifecycle.InitialisationException;
@@ -36,9 +39,7 @@ import org.mule.api.source.MessageSource;
 import org.mule.api.transformer.DataType;
 import org.mule.api.transformer.Transformer;
 import org.mule.api.transformer.TransformerException;
-import org.mule.tools.module.helper.MuleContexts;
-import org.mule.tools.module.helper.Parameters;
-import org.mule.tools.module.helper.Reflections;
+import org.mule.tools.module.helper.*;
 import org.mule.tools.module.model.Module;
 import org.mule.tools.module.model.Parameter;
 import org.mule.tools.module.model.Processor;
@@ -51,43 +52,60 @@ public class DynamicModule implements Disposable {
 
     /**
      * Encapsulate logic dealing with event received from a {@link Source}.
-     * @param <T> 
      */
-    public interface Listener<T> {
+    public interface Listener {
 
         /**
          * Called every time associated {@link Source} fires an event.
-         * @param event 
          */
-        void onEvent(T event);
+        void onEvent(MuleEvent message);
 
     }
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DynamicModule.class.getPackage().getName());
 
     private final MuleContext context;
+    private final ClassLoader classLoader;
     private final Module module;
+    private Object moduleObject;
+    private Object connectionManager;
     private static final String MODULE_OBJECT_REGISTRY_KEY = "moduleObject";
     private final int retryMax;
     protected static final int DEFAULT_RETRY_MAX = 5;
     private final Map<String, Object> parameters;
+    private final Map<String, Object> connectionParameters;
     private final Map<Class<?>, Invoker> invokerCache = new HashMap<Class<?>, Invoker>();
     private final Map<Class<?>, Registrar> registrarCache = new HashMap<Class<?>, Registrar>();
 
-    public DynamicModule(final Module module) {
-        this(module, Collections.<String, Object>emptyMap());
+    //TODO Introduce builder
+    public DynamicModule(final List<URL> urls, final Module module) {
+        this(new URLClassLoader(urls.toArray(new URL[urls.size()]), Thread.currentThread().getContextClassLoader()), module);
     }
 
-    public DynamicModule(final Module module, final Map<String, Object> overriddenParameters) {
-        this(module, overriddenParameters, DynamicModule.DEFAULT_RETRY_MAX);
+    public DynamicModule(final ClassLoader classLoader, final Module module) {
+        this(classLoader, module, Collections.<String, Object>emptyMap(), Collections.<String, Object>emptyMap());
     }
 
-    public DynamicModule(final Module module, final Map<String, Object> overriddenParameters, final int retryMax) {
+    public DynamicModule(final List<URL> urls, final Module module, final Map<String, Object> overriddenParameters, final Map<String, Object> connectionParameters) {
+        this(new URLClassLoader(urls.toArray(new URL[urls.size()]), Thread.currentThread().getContextClassLoader()), module, overriddenParameters, connectionParameters);
+    }
+
+    public DynamicModule(final ClassLoader classLoader, final Module module, final Map<String, Object> overriddenParameters, final Map<String, Object> connectionParameters) {
+        this(classLoader, module, overriddenParameters, connectionParameters, DynamicModule.DEFAULT_RETRY_MAX);
+    }
+
+    public DynamicModule(final ClassLoader classLoader, final Module module, final Map<String, Object> overriddenParameters, final Map<String, Object> overriddenConnectionParameters, final int retryMax) {
+        if (classLoader == null) {
+            throw new IllegalArgumentException("null classLoader");
+        }
         if (module == null) {
             throw new IllegalArgumentException("null module");
         }
         if (overriddenParameters == null) {
             throw new IllegalArgumentException("null overriddenParameters");
+        }
+        if (overriddenConnectionParameters == null) {
+            throw new IllegalArgumentException("null overriddenConnectionParameters");
         }
         if (retryMax <= 0) {
             throw new IllegalArgumentException("retryMax must be > 0");
@@ -101,9 +119,11 @@ public class DynamicModule implements Disposable {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+        this.classLoader = classLoader;
         this.module = module;
         this.retryMax = retryMax;
         this.parameters = allParameters(module.getParameters(), overriddenParameters);
+        this.connectionParameters = overriddenConnectionParameters;//TODO add support for default values
         
         try {
             initialise();
@@ -117,23 +137,36 @@ public class DynamicModule implements Disposable {
     }
 
     private void initialise() throws InitialisationException, RegistrationException, MuleException {
- /*TODO       final Object module = this.module.getModule();
-        if (Modules.isLifeCycleCapable(module)) {
-            LifeCycles.initialise(module);
-            LifeCycles.start(module);
+        final Class<?> moduleObjectClass = Classes.loadClass(this.classLoader, this.module.getType());
+        if (moduleObjectClass == null) {
+            throw new IllegalArgumentException("Failed to load <"+this.module.getType()+">");
         }
-        if (this.module.getConnectionManager() != null) {
-            LifeCycles.initialise(this.module.getConnectionManager());
+        this.moduleObject = Classes.newInstance(moduleObjectClass);
+        if (Modules.isLifeCycleCapable(this.moduleObject)) {
+            LifeCycles.initialise(this.moduleObject);
+            LifeCycles.start(this.moduleObject);
+        }
+        if (this.module.getConnectionManagerType() != null) {
+            final Class<?> connectionManagerClass = Classes.loadClass(this.classLoader, this.module.getConnectionManagerType());
+            if (connectionManagerClass == null) {
+                throw new IllegalArgumentException("Failed to load <"+this.module.getConnectionManagerType()+">");
+            }
+            this.connectionManager = Classes.newInstance(connectionManagerClass);
+            if (Modules.isLifeCycleCapable(this.connectionManager)) {
+                LifeCycles.initialise(this.connectionManager);
+            }
+            for (final Map.Entry<String, Object> entry : this.connectionParameters.entrySet()) {
+                Reflections.set(this.connectionManager, entry.getKey(), entry.getValue());
+            }
         }
 
         //Apply parameters to the ModuleObject.
-        final Object moduleObject = this.module.getModuleObject();
+        final Object object = this.connectionManager != null ? this.connectionManager : this.moduleObject;
         for (final Map.Entry<String, Object> entry : this.parameters.entrySet()) {
-            Reflections.set(moduleObject, entry.getKey(), entry.getValue());
+            Reflections.set(object, entry.getKey(), entry.getValue());
         }
 
-        this.context.getRegistry().registerObject(DynamicModule.MODULE_OBJECT_REGISTRY_KEY, moduleObject);
-         */
+        this.context.getRegistry().registerObject(DynamicModule.MODULE_OBJECT_REGISTRY_KEY, object);
     }
 
     protected final void validateParameterTypeCorrectness(final List<Parameter> defaultParameters, final Map<String, Object> overriddenParameters) {
@@ -268,7 +301,11 @@ public class DynamicModule implements Disposable {
         validateParameterTypeCorrectness(processor.getParameters(), overriddenParameters);
         ensureNoMissingParameters(processor.getParameters(), overriddenParameters);
 
-        return null;//TODOinvoke(processor.getMessageProcessor(), allParameters(processor.getParameters(), overriddenParameters));
+        final Class<MessageProcessor> messageProcessorType = Classes.loadClass(this.classLoader, processor.getType());
+        if (messageProcessorType == null) {
+            throw new IllegalArgumentException("Cannot load <"+processor.getType()+">");
+        }
+        return invoke(Classes.newInstance(messageProcessorType), allParameters(processor.getParameters(), overriddenParameters));
     }
 
     protected <T> T invoke(final MessageProcessor messageProcessor, final Map<String, Object> parameters) throws InitialisationException, MuleException {
@@ -289,25 +326,23 @@ public class DynamicModule implements Disposable {
     }
 
     /**
-     * @param messageProcessor
+     * @param messageSourceType
      * @return a cached {@link Invoker} for {@link MessageProcessor}.
      * @throws InitialisationException
      * @throws MuleException
      * @see #createInvoker(org.mule.api.processor.MessageProcessor) 
      */
-    protected synchronized final Registrar getRegistrar(final MessageSource messageSource) throws InitialisationException, MuleException {
-        final Class<?> key = messageSource.getClass();
-        return this.registrarCache.get(key);
+    protected synchronized final Registrar getRegistrar(final Class<MessageSource> messageSourceType) throws InitialisationException, MuleException {
+        return this.registrarCache.get(messageSourceType);
     }
 
     /**
      * @param messageSource
      * @return a new cached {@link Regsitrar}
      */
-    protected synchronized final Registrar createAndCacheRegistrar(final MessageSource messageSource) {
-        final Class<?> key = messageSource.getClass();
-        final Registrar registrar = new Registrar(this.context, messageSource);
-        this.registrarCache.put(key, registrar);
+    protected synchronized final Registrar createAndCacheRegistrar(final Class<MessageSource> messageSourceType) {
+        final Registrar registrar = new Registrar(this.context, Classes.<MessageSource>newInstance(messageSourceType));
+        this.registrarCache.put(messageSourceType, registrar);
         return registrar;
     }
 
@@ -335,12 +370,11 @@ public class DynamicModule implements Disposable {
         validateParameterTypeCorrectness(source.getParameters(), overriddenParameters);
         ensureNoMissingParameters(source.getParameters(), overriddenParameters);
 
-/*TODO        final Registrar registrar = getRegistrar(source.getMessageSource());
+        final Registrar registrar = getRegistrar(Classes.<MessageSource>loadClass(this.classLoader, source.getType()));
         if (registrar != null) {
             throw new IllegalStateException("Source <"+sourceName+"> is already subscribed");
         }
-        createAndCacheRegistrar(source.getMessageSource()).start(allParameters(source.getParameters(), overriddenParameters), listener);
-         */
+        createAndCacheRegistrar(Classes.<MessageSource>loadClass(this.classLoader, source.getType())).start(allParameters(source.getParameters(), overriddenParameters), listener);
     }
 
     /**
@@ -359,13 +393,11 @@ public class DynamicModule implements Disposable {
             throw new IllegalArgumentException("Cannot find a Source named <"+sourceName+">");
         }
 
-/*TODO        final Registrar registrar = getRegistrar(source.getMessageSource());
+        final Registrar registrar = getRegistrar(Classes.<MessageSource>loadClass(this.classLoader, source.getType()));
         if (registrar == null) {
             throw new IllegalStateException("Source <"+sourceName+"> is not subscribed");
         }
         registrar.stop();
-         * 
-         */
     }
 
     /**

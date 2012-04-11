@@ -93,7 +93,7 @@ public final class Classes {
      * @param clazz
      * @return new {@link Class} instance; null if instantiation fails
      */
-    public static <T> T newInstance(final Class<?> clazz) {
+    public static <T> T newInstance(final Class<T> clazz) {
         try {
             return (T) clazz.newInstance();
         } catch (Exception e) {

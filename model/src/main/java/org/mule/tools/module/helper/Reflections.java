@@ -35,7 +35,7 @@ public final class Reflections {
             field.setAccessible(true);
             return field;
         } catch (NoSuchFieldException e) {
-            throw new RuntimeException("Failed to make <"+propertyName+"> accessible", e);
+            throw new RuntimeException("Failed to make <"+propertyName+"> accessible on <"+type+">", e);
         }
     }
 
@@ -239,15 +239,19 @@ public final class Reflections {
 
     /**
      * @param <T>
-     * @param object
+     * @param className
      * @param method
      * @param argument
      * @param argumentType 
      * @return result of dynamic invocation of `method` on `object` with `argument`.
      */
-    public static <T> T staticInvoke(final String clazz, final String method, final Object argument) {
+    public static <T> T staticInvoke(final String className, final String method, final Object argument) {
+        final Class<?> clazz = Classes.loadClass(className);
+        if (clazz == null) {
+            throw new IllegalArgumentException("Failed to load <"+className+">");
+        }
         try {
-            return (T) Classes.loadClass(clazz).getMethod(method, argument.getClass()).invoke(null, argument);
+            return (T) clazz.getMethod(method, argument.getClass()).invoke(null, argument);
         } catch (Exception e) {
             throw new RuntimeException("Failed to invoke static <"+method+"> with arguments <"+argument+">", e);
         }

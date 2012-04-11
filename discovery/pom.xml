@@ -27,6 +27,16 @@
       <artifactId>introspection</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>invocation</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.mule.tools.devkit</groupId>
+      <artifactId>mule-devkit-annotations</artifactId>
+      <version>3.3-SNAPSHOT</version>
+    </dependency>
     <!-- Aether dependencies -->
     <dependency>
       <groupId>org.sonatype.aether</groupId>

@@ -19,8 +19,8 @@
 package org.mule.tools.module.invocation;
 
 import java.util.Map;
-
 import java.util.concurrent.atomic.AtomicReference;
+
 import org.mule.api.MuleException;
 import org.mule.api.lifecycle.InitialisationException;
 import org.mule.api.processor.MessageProcessor;
@@ -37,12 +37,12 @@ public class RetryingDynamicModule extends DynamicModule {
 
     private final AbstractPolicyTemplate retryPolicyTemplate;
 
-    public RetryingDynamicModule(final Module module, final Map<String, Object> overriddenParameters, final AbstractPolicyTemplate retryPolicyTemplate) {
-        this(module, overriddenParameters, DynamicModule.DEFAULT_RETRY_MAX, retryPolicyTemplate);
+    public RetryingDynamicModule(final ClassLoader classLoader, final Module module, final Map<String, Object> overriddenParameters, final Map<String, Object> connectionParameters, final AbstractPolicyTemplate retryPolicyTemplate) {
+        this(classLoader, module, overriddenParameters, connectionParameters, DynamicModule.DEFAULT_RETRY_MAX, retryPolicyTemplate);
     }
 
-    public RetryingDynamicModule(final Module module, final Map<String, Object> overriddenParameters, final int retryMax, final AbstractPolicyTemplate retryPolicyTemplate) {
-        super(module, overriddenParameters, retryMax);
+    public RetryingDynamicModule(final ClassLoader classLoader, final Module module, final Map<String, Object> overriddenParameters, final Map<String, Object> connectionParameters, final int retryMax, final AbstractPolicyTemplate retryPolicyTemplate) {
+        super(classLoader, module, overriddenParameters, connectionParameters, retryMax);
 
         if (retryPolicyTemplate == null) {
             throw new IllegalArgumentException("null retryPolicyTemplate");

@@ -21,7 +21,6 @@
       <artifactId>guava</artifactId>
     </dependency>
     <dependency>
-      <!-- TODO to remove -->
       <groupId>org.mule</groupId>
       <artifactId>mule-core</artifactId>
     </dependency>

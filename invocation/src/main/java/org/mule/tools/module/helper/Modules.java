@@ -18,23 +18,24 @@
 
 package org.mule.tools.module.helper;
 
-import com.google.common.base.Preconditions;
+public final class Modules {
 
-public final class Strings {
+    private static final String CAPABILITY_CLASS_NAME = "org.mule.api.Capability";
+    private static final String LIFECYCLE_CAPABILITY = "LIFECYCLE_CAPABLE";
 
-    private Strings() {
+    private Modules() {
     }
 
-    public static String capitalize(final String string) {
-        Preconditions.checkArgument(!com.google.common.base.Strings.isNullOrEmpty(string));
-
-        return new StringBuilder(string.length()).append(Character.toTitleCase(string.charAt(0))).append(string.substring(1)).toString();
+    private static Object capability(final String name) {
+        return Reflections.staticInvoke(Modules.CAPABILITY_CLASS_NAME, "valueOf", name);
     }
 
-    public static String uncapitalize(final String string) {
-        Preconditions.checkArgument(!com.google.common.base.Strings.isNullOrEmpty(string));
+    private static boolean isCapableOf(final Object module, final Object capability) {
+        return Reflections.<Boolean>invoke(module, "isCapableOf", capability);
+    }
 
-        return new StringBuilder(string.length()).append(Character.toLowerCase(string.charAt(0))).append(string.substring(1)).toString();
+    public static boolean isLifeCycleCapable(final Object module) {
+        return Modules.isCapableOf(module, Modules.capability(Modules.LIFECYCLE_CAPABILITY));
     }
 
 }

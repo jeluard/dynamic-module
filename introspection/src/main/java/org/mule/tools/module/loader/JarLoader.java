@@ -19,6 +19,7 @@
 package org.mule.tools.module.loader;
 
 import com.google.common.base.CaseFormat;
+
 import java.io.File;
 import java.io.IOException;
 import java.lang.annotation.Annotation;
@@ -26,8 +27,11 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.*;
 import javax.annotation.Nullable;
+import javax.xml.xpath.XPathExpressionException;
 
 import org.mule.tools.module.helper.*;
+import org.mule.tools.module.loader.repository.Repository;
+import org.mule.tools.module.loader.repository.GithubRepository;
 import org.mule.tools.module.model.Metadata;
 import org.mule.tools.module.model.Module;
 import org.slf4j.Logger;
@@ -208,20 +212,21 @@ public class JarLoader {
             if (moduleObject == null) {
                 throw new IllegalArgumentException("Failed to instantiate Module class <"+moduleClass.getSimpleName()+">");
             }
-            final Loader loader = new Loader();
-            final Module module = loader.load(mostSpecificSubClass, extractConnectionManagerClassName(mostSpecificSubClass.getPackage().getName(), moduleClass.getSimpleName(), moduleObject));
-            final Metadata metadata;
+            final String devkitVersion;
+            final String scmUrl;
             try {
                 final File pom = Jars.load(moduleJar, "META-INF/maven/.*/pom.xml");
+                if (pom == null) {
+                   throw new IllegalArgumentException("Failed to find pom.xml.");
+                }
                 try {
                     final Document document = XML.load(pom);
                     final List<String> scmUrls = XML.extract(document, "/project/scm/url");
+                    devkitVersion = extractDevkitVersion(document);
                     if (!urls.isEmpty()) {
-                        final String scmUrl = scmUrls.get(0);
-                        final Repository repository = getRepository(scmUrl);
-                        metadata = repository != null ? extractMetadata(repository, mostSpecificSubClass, module) : null;
+                        scmUrl = scmUrls.get(0);
                     } else {
-                        metadata = null;
+                        scmUrl = null;
                     }
                 } finally {
                     pom.delete();
@@ -229,10 +234,24 @@ public class JarLoader {
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
+            final Loader loader = getLoader(devkitVersion);
+            final Module module = loader.load(mostSpecificSubClass, extractConnectionManagerClassName(mostSpecificSubClass.getPackage().getName(), moduleClass.getSimpleName(), moduleObject));
+            final Repository repository = getRepository(scmUrl);
+            final Metadata metadata = repository != null ? extractMetadata(repository, mostSpecificSubClass, module) : null;
             return new org.mule.tools.module.model.Package(module, metadata);
         } finally {
             Thread.currentThread().setContextClassLoader(currentClassLoader);
         }
+    }
+
+    protected final String extractDevkitVersion(final Document document) throws XPathExpressionException {
+        final List<String> parentGroupId = XML.extract(document, "/project/parent/groupId");
+        final List<String> parentArtifactId = XML.extract(document, "/project/parent/artifactId");
+        if (!parentGroupId.isEmpty() && "org.mule.tools.devkit".equals(parentGroupId.get(0)) &&
+               !parentArtifactId.isEmpty() && "mule-devkit-parent".equals(parentArtifactId.get(0))) {
+            return XML.extract(document, "/project/parent/version").get(0);
+        }
+        throw new IllegalArgumentException("Failed to extract devkit version from <"+document.getBaseURI()+">");
     }
 
     @Nullable
@@ -241,6 +260,15 @@ public class JarLoader {
             return new GithubRepository(url);
         }
         return null;
+    }
+
+    protected final Loader getLoader(final String devkitVersion) {
+        if(devkitVersion.startsWith("3.2")) {
+            return new Devkit42Loader();
+        } else if(devkitVersion.startsWith("3.3")) {
+            return new Devkit43Loader();
+        }
+        throw new IllegalArgumentException("Cannot find Loader for devkit <"+devkitVersion+">");
     }
 
 }

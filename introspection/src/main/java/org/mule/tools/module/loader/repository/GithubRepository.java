@@ -16,7 +16,7 @@
  * the License.
  */
 
-package org.mule.tools.module.loader;
+package org.mule.tools.module.loader.repository;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
