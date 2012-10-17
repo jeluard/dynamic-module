@@ -74,6 +74,7 @@ public class DynamicModule implements Disposable {
     protected static final int DEFAULT_RETRY_MAX = 5;
     private final Map<String, Object> parameters;
     private final Map<String, Object> connectionParameters;
+    private final Map<String, MessageProcessor> messageProcessorCache = new HashMap<String, MessageProcessor>();
     private final Map<Class<?>, Invoker> invokerCache = new HashMap<Class<?>, Invoker>();
     private final Map<Class<?>, Registrar> registrarCache = new HashMap<Class<?>, Registrar>();
 
@@ -301,11 +302,21 @@ public class DynamicModule implements Disposable {
         validateParameterTypeCorrectness(processor.getParameters(), overriddenParameters);
         ensureNoMissingParameters(processor.getParameters(), overriddenParameters);
 
-        final Class<MessageProcessor> messageProcessorType = Classes.loadClass(this.classLoader, processor.getType());
-        if (messageProcessorType == null) {
-            throw new IllegalArgumentException("Cannot load <"+processor.getType()+">");
+        return invoke(getMessageProcessor(processor.getType()), allParameters(processor.getParameters(), overriddenParameters));
+    }
+
+    public synchronized final MessageProcessor getMessageProcessor(final String type) {
+        if (this.messageProcessorCache.containsKey(type)) {
+            return this.messageProcessorCache.get(type);
+        } else {
+            final Class<MessageProcessor> messageProcessorType = Classes.loadClass(this.classLoader, type);
+            if (messageProcessorType == null) {
+                throw new IllegalArgumentException("Cannot load <"+type+">");
+            }
+            final MessageProcessor messageProcessor = Classes.newInstance(messageProcessorType);
+            this.messageProcessorCache.put(type, messageProcessor);
+            return messageProcessor;
         }
-        return invoke(Classes.newInstance(messageProcessorType), allParameters(processor.getParameters(), overriddenParameters));
     }
 
     protected <T> T invoke(final MessageProcessor messageProcessor, final Map<String, Object> parameters) throws InitialisationException, MuleException {
@@ -411,6 +422,7 @@ public class DynamicModule implements Disposable {
         for (final Invoker invoker : this.invokerCache.values()) {
             invoker.dispose();
         }
+        this.invokerCache.clear();
         for (final Registrar registrar : this.registrarCache.values()) {
             try {
                 registrar.stop();
@@ -420,6 +432,8 @@ public class DynamicModule implements Disposable {
                 }
             }
         }
+        this.registrarCache.clear();
+        this.messageProcessorCache.clear();
         this.context.dispose();
     }
 
